@@ -15,11 +15,24 @@ To deploy the application, follow the instructions provided in `instructions.md`
 
 **Main Files:**
 
-- app.py`: Contains the main logic of the web application, including paths and associated functions.
+- `app.py`: Contains the main logic of the web application, including paths and associated functions.
 - `model.py`: Defines the machine learning model and data processing required to classify messages.
 - `scraper.py`: Is responsible for crawling and extracting messages from Telegram.
 
+## Configuration:
+
+Before running the application, it is essential to configure certain files for the tool to work properly:
+
+1. **Credentials.txt:**  
+   This file is required for the Telegram tracker to work. You must include your own developer API keys here. If you don't already have API keys, you can get them by registering as a developer on Telegram. Once you have them, replace the corresponding values in `credentials.txt`.
+
+2. **telegram_channels.csv:**  
+   This file contains a list of the Telegram channels you want to monitor. You can modify this file to include or remove channels according to your needs. Be sure to follow the correct format when adding new channels.
+
+
 ---
+
+# Telegram-app
 
 **Descripción:**  
 Telegram-app es una herramienta de verificación de hechos diseñada para rastrear y etiquetar mensajes de alto rendimiento en Telegram con el objetivo de combatir la desinformación.
@@ -39,3 +52,13 @@ Para desplegar la aplicación, sigue las instrucciones proporcionadas en `instru
 - `app.py`: Contiene la lógica principal de la aplicación web, incluyendo las rutas y las funciones asociadas.
 - `model.py`: Define el modelo de aprendizaje automático y el procesamiento de datos necesario para clasificar los mensajes.
 - `scraper.py`: Es responsable de rastrear y extraer mensajes de Telegram.
+
+## Configuración:
+
+Antes de ejecutar la aplicación, es esencial configurar ciertos archivos para que la herramienta funcione correctamente:
+
+1. **Credentials.txt:**  
+   Este archivo es necesario para que el rastreador de Telegram funcione. Debes incluir tus propias claves de API de desarrollador aquí. Si aún no tienes claves de API, puedes obtenerlas registrándote como desarrollador en Telegram. Una vez que las tengas, reemplaza los valores correspondientes en `credentials.txt`.
+
+2. **telegram_channels.csv:**  
+   Este archivo contiene una lista de los canales de Telegram que deseas monitorizar. Puedes modificar este archivo para incluir o eliminar canales según tus necesidades. Asegúrate de seguir el formato correcto al agregar nuevos canales.
