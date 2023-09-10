@@ -77,8 +77,6 @@ Antes de ejecutar la aplicación, es esencial configurar ciertos archivos para q
 2. **telegram_channels.csv:**  
    Este archivo contiene una lista de los canales de Telegram que deseas monitorizar. Puedes modificar este archivo para incluir o eliminar canales según tus necesidades. Asegúrate de seguir el formato correcto al agregar nuevos canales.
 
-   ¡Gracias por proporcionar el enlace! Aquí tienes la sección actualizada:
-
 ## Licencia
 
 Este proyecto está licenciado bajo la **Licencia MIT**. Puedes leer los detalles completos en el archivo [LICENSE](LICENSE).
