@@ -29,6 +29,20 @@ Before running the application, it is essential to configure certain files for t
 2. **telegram_channels.csv:**  
    This file contains a list of the Telegram channels you want to monitor. You can modify this file to include or remove channels according to your needs. Be sure to follow the correct format when adding new channels.
 
+## License
+
+This project is licensed under the **MIT License**. You can read the full details in the [LICENSE](LICENSE) file.
+
+## Contact
+
+If you have questions, comments, or suggestions, please feel free to get in touch:
+
+- **Twitter:** [@ProsumidorSoc](https://twitter.com/ProsumidorSoc)
+- **Email:** [javicanton@ugr.es](mailto:javicanton@ugr.es)
+
+## Note
+
+This development is part of the author's final Master's project within the Master's in Artificial Intelligence at UNIR.
 
 ---
 
@@ -62,3 +76,20 @@ Antes de ejecutar la aplicación, es esencial configurar ciertos archivos para q
 
 2. **telegram_channels.csv:**  
    Este archivo contiene una lista de los canales de Telegram que deseas monitorizar. Puedes modificar este archivo para incluir o eliminar canales según tus necesidades. Asegúrate de seguir el formato correcto al agregar nuevos canales.
+
+   ¡Gracias por proporcionar el enlace! Aquí tienes la sección actualizada:
+
+## Licencia
+
+Este proyecto está licenciado bajo la **Licencia MIT**. Puedes leer los detalles completos en el archivo [LICENSE](LICENSE).
+
+## Contacto
+
+Si tienes preguntas, comentarios o sugerencias, no dudes en ponerte en contacto:
+
+- **Twitter:** [@ProsumidorSoc](https://twitter.com/ProsumidorSoc)
+- **Correo Electrónico:** [javicanton@ugr.es](mailto:javicanton@ugr.es)
+
+## Nota
+
+Este desarrollo forma parte del trabajo final de Máster del autor dentro del Máster de Inteligencia Artificial de la UNIR.
