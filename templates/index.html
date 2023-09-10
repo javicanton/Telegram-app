@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Telegram Messages Monitorization</title>
+    <style>
+        .message-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: flex-start;  /* Align items at the start */
+        }
+        .message-card {
+            flex: 0 0 calc(30% - 20px); /* Reduced from 33.33% to 30% */
+            margin: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            padding: 16px;
+        }
+        .message-card::after {
+            content: "";
+            display: table;
+            clear: both;
+        }
+        .button-container {
+            text-align: center;  /* Center the buttons horizontally */
+            margin-top: 10px;    /* Add some margin at the top for spacing */
+        }
+        .button-container-general {
+            text-align: center;  /* Center the buttons horizontally */
+            margin-top: 10px;    /* Add some margin at the top for spacing */
+        }
+        button {
+            padding: 10px 20px;  /* Increase padding for larger buttons */
+            font-size: 16px;     /* Increase font size */
+            margin: 0 5px;       /* Add margin to space the buttons apart */
+            display: inline-block; /* Display buttons inline */
+        }
+        
+        .score-title {
+            font-size: 1.5em;  /* Adjust the size as needed */
+            text-align: center;
+            margin-bottom: 10px;  /* Add some space between the title and the embed */
+        }
+        .score-value {
+            color: red;
+        }
+        .goto-message-btn {
+            display: inline-block;
+            text-align: center;  /* Center the buttons horizontally */
+            padding: 10px 20px;
+            font-size: 16px;
+            margin: 0 5px;
+            text-decoration: none;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }
+        .goto-message-btn:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <h1>Overperforming Messages in Telegram</h1>
+    <h2>Label messages as relevant or not relevant</h2>
+    <div id="messageContainer" class="message-container">
+        {% for message in messages %}
+        <div class="message-card">
+            <!-- Display Overperforming Score as the card title -->
+            <h2 class="score-title">Overperforming Score: <span class="score-value">{{ message['Score']|round(2) }}</span>x</h2>
+
+            <!-- Display the message using the Embed column -->
+            {{ message['Embed']|safe }}
+                     
+            <!-- Buttons -->
+            <div class="button-container">
+                {% if message['Label'] == 1 %}
+                    <button class="relevant-btn" data-message-id="{{ message['Message ID'] }}" style="background-color: green">Relevant</button>
+                    <button class="not-relevant-btn" data-message-id="{{ message['Message ID'] }}">Not Relevant</button>
+                {% elif message['Label'] == 0 %}
+                    <button class="relevant-btn" data-message-id="{{ message['Message ID'] }}">Relevant</button>
+                    <button class="not-relevant-btn" data-message-id="{{ message['Message ID'] }}" style="background-color: red">Not Relevant</button>
+                {% else %}
+                    <button class="relevant-btn" data-message-id="{{ message['Message ID'] }}">Relevant</button>
+                    <button class="not-relevant-btn" data-message-id="{{ message['Message ID'] }}">Not Relevant</button>
+                {% endif %}
+                <a href="{{ message['URL'] }}" target="_blank" class="goto-message-btn">Go to message</a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+        <!-- Separate container for the two general buttons -->
+    <div class="button-container-general">
+        <button id="loadMoreBtn">Load More</button>
+        <button id="exportRelevantsBtn">Export relevants</button>
+    </div>
+    
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            function labelMessage(messageId, label) {
+                fetch('/label', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        message_id: messageId,
+                        label: label
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        console.log(`Labeled ${messageId} as ${label}`);
+                        const relevantBtn = document.querySelector(`button.relevant-btn[data-message-id="${messageId}"]`);
+                        const notRelevantBtn = document.querySelector(`button.not-relevant-btn[data-message-id="${messageId}"]`);
+                        const payload = {
+                            message_id: messageId,
+                            label: label
+                        };
+                        console.log("Sending payload:", payload);
+                        fetch('/label', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify(payload)
+                        })
+
+                        if (label === 1) {
+                            relevantBtn.style.backgroundColor = "green";
+                            notRelevantBtn.style.backgroundColor = "";
+                        } else {
+                            relevantBtn.style.backgroundColor = "";
+                            notRelevantBtn.style.backgroundColor = "red";
+                        }
+                    } else {
+                        console.error('Error labeling the message.');
+                    }
+                });
+                console.log("Labeling messageId:", messageId, "with value:", labelValue);
+            }
+
+            let offset = 48;
+
+            document.getElementById("loadMoreBtn").addEventListener("click", function() {
+                fetch(`/load_more/${offset}`)
+                    .then(response => response.text())
+                    .then(data => {
+                        document.getElementById("messageContainer").innerHTML += data;
+                        const script = document.createElement('script');
+                        script.src = "https://telegram.org/js/telegram-widget.js?22";
+                        document.body.appendChild(script);
+                        offset += 24;
+                    });
+            });
+
+            document.body.addEventListener('click', function(event) {
+                let messageId;
+                if (event.target.matches('.relevant-btn')) {
+                    messageId = event.target.dataset.messageId;
+                    labelMessage(messageId, 1);
+                    
+                    // Change the button colors
+                    event.target.style.backgroundColor = "green"; // set the relevant button to green
+                    event.target.nextElementSibling.style.backgroundColor = ""; // reset the not-relevant button to its original color
+                } else if (event.target.matches('.not-relevant-btn')) {
+                    messageId = event.target.dataset.messageId;
+                    labelMessage(messageId, 0);
+                    
+                    // Change the button colors
+                    event.target.style.backgroundColor = "red"; // set the not-relevant button to red
+                    event.target.previousElementSibling.style.backgroundColor = ""; // reset the relevant button to its original color
+                }
+            });
+
+            document.getElementById("exportRelevantsBtn").addEventListener("click", function() {
+                fetch('/export_relevants')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            alert("Relevant messages exported successfully!");
+                        } else {
+                            alert("There was an error exporting the messages.");
+                        }
+                    });
+            });
+        });
+
+    </script>
+</body>
+</html>
