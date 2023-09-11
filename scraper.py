@@ -221,7 +221,12 @@ async def main():
     # Check if the CSV file exists
     file_exists = os.path.isfile('telegram_messages.csv')
 
-    # Save to CSV
+    # Convert specific columns and save to CSV
+    columnas_a_convertir = ['Message ID', 'Sender ID', 'Reply To', 'Forwarded From']  
+    for columna in columnas_a_convertir:
+        if columna in df.columns:
+            df[columna] = df[columna].fillna(0).astype(int)
+
     df.to_csv('telegram_messages.csv', index=False, encoding='utf-8')
     participants_df.to_csv('telegram_participants.csv', index=False, encoding='utf-8')
 
@@ -232,6 +237,14 @@ async def main():
     else:
         participants_df.to_csv('telegram_participants.csv', index=False, encoding='utf-8')
 
-   # Ensure the client is started before running the main coroutine
+    # Date conversion and save to Excel
+    df['Creation Date'] = df['Creation Date'].dt.tz_localize(None)
+    df['Date Sent'] = df['Date Sent'].dt.tz_localize(None)
+    df['Edit Date'] = df['Edit Date'].dt.tz_localize(None)
+    with pd.ExcelWriter('telegram_data.xlsx', engine='openpyxl') as writer:
+        df.to_excel(writer, sheet_name='Messages', index=False)
+        participants_df.to_excel(writer, sheet_name='Participants', index=False)
+
+# Ensure the client is started before running the main coroutine
 with client:
     client.loop.run_until_complete(main())
