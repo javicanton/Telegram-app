@@ -18,8 +18,30 @@ import seaborn as sns
 # Set the working directory to the script's directory
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
-# Load the data
+# Load the original dataset
 df = pd.read_csv('telegram_messages.csv')
+
+# Determine the distribution of the labeled messages
+relevant_count = df['Label'].sum()
+total_labeled = df['Label'].count()
+not_relevant_count = total_labeled - relevant_count
+
+# Calculate probabilities
+prob_relevant = relevant_count / total_labeled
+prob_not_relevant = 1 - prob_relevant
+
+# For the unlabeled messages, generate random labels based on the distribution
+mask_unlabeled = df['Label'].isna()
+num_unlabeled = mask_unlabeled.sum()
+
+random_labels = np.random.choice([1, 0], size=num_unlabeled, p=[prob_relevant, prob_not_relevant])
+df.loc[mask_unlabeled, 'Label'] = random_labels
+
+# Save the DataFrame with the added random labels to the new CSV file
+df.to_csv('telegram_messages_randomlabels.csv', index=False)
+
+# Load the randomized dataset
+df = pd.read_csv('telegram_messages_randomlabels.csv')
 
 # Text cleaning function
 def clean_text(text):
@@ -59,33 +81,16 @@ vectorizer = TfidfVectorizer(max_features=5000)  # Limiting to 5000 most frequen
 # Fit and transform the cleaned text
 tfidf_matrix = vectorizer.fit_transform(df['Cleaned_Text'])
 
-# Split the data into labeled and unlabeled subsets
-labeled_df = df.dropna(subset=['Label'])
-unlabeled_df = df[df['Label'].isna()]
+# Convert the entire data into features and target
+X = vectorizer.transform(df['Cleaned_Text'])
+y = df['Label']
 
-# Convert the labeled data into features and target
-X_labeled = vectorizer.transform(labeled_df['Cleaned_Text'])
-y_labeled = labeled_df['Label']
-
-# Split labeled data into training and validation sets
-X_train, X_val, y_train, y_val = train_test_split(X_labeled, y_labeled, test_size=0.2, random_state=42)
+# Split the data into training and validation sets
+X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, random_state=42)
 
 # Initialize and train the model
 logreg = LogisticRegression(max_iter=1000)
 logreg.fit(X_train, y_train)
-
-# Predict labels for the unlabeled data
-X_unlabeled = vectorizer.transform(unlabeled_df['Cleaned_Text'])
-predicted_labels = logreg.predict(X_unlabeled)
-
-# Update the unlabeled data with the predicted labels
-unlabeled_df['Label_predicted'] = predicted_labels
-
-# Combine the labeled and unlabeled data
-df_updated = pd.concat([labeled_df, unlabeled_df])
-
-# Save the updated DataFrame
-df_updated.to_csv('telegram_messages_updated.csv', index=False)
 
 # Generate predictions for the validation set
 y_pred = logreg.predict(X_val)

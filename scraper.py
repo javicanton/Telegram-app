@@ -198,8 +198,9 @@ async def main():
 
     # Set the 'Message ID' and 'Username' columns as the index for both DataFrames
     if 'Message ID' in existing_messages.columns and 'Username' in existing_messages.columns:
-        # Set the 'Message ID' and 'Username' columns as the index for both DataFrames
         existing_messages.set_index(['Message ID', 'Username'], inplace=True)
+
+    if 'Message ID' in new_data_df.columns and 'Username' in new_data_df.columns:
         new_data_df.set_index(['Message ID', 'Username'], inplace=True)
 
     # Update the existing data with the new data
@@ -207,10 +208,11 @@ async def main():
 
     # Reset the index of the existing data
     existing_messages.reset_index(inplace=True)
+    new_data_df.reset_index(inplace=True)
 
-    df = pd.concat([existing_messages, new_data_df.reset_index()], ignore_index=True)
+    df = pd.concat([existing_messages, new_data_df], ignore_index=True)
     df.drop_duplicates(subset=['Message ID', 'Username'], inplace=True, keep='first')
-    
+        
     if 'Label' not in df.columns:
         df['Label'] = ''
     df['Label'].fillna('', inplace=True)  
@@ -222,9 +224,10 @@ async def main():
     file_exists = os.path.isfile('telegram_messages.csv')
 
     # Convert specific columns and save to CSV
-    columnas_a_convertir = ['Message ID', 'Sender ID', 'Reply To', 'Forwarded From']  
+    # Convertir columnas específicas a entero
+    columnas_a_convertir = ['Message ID', 'Sender ID', 'Reply To', 'Forwarded From', 'Views', 'Members Count']
     for columna in columnas_a_convertir:
-        if columna in df.columns:
+        if columna in df.columns and df[columna].dtype not in ['datetime64[ns]', 'timedelta64[ns]']:
             df[columna] = df[columna].fillna(0).astype(int)
 
     df.to_csv('telegram_messages.csv', index=False, encoding='utf-8')
@@ -238,9 +241,12 @@ async def main():
         participants_df.to_csv('telegram_participants.csv', index=False, encoding='utf-8')
 
     # Date conversion and save to Excel
-    df['Creation Date'] = df['Creation Date'].dt.tz_localize(None)
-    df['Date Sent'] = df['Date Sent'].dt.tz_localize(None)
-    df['Edit Date'] = df['Edit Date'].dt.tz_localize(None)
+    datetime_columns = df.select_dtypes(include=['datetime64[ns]']).columns
+    # Date conversion and save to Excel
+    for col in df.columns:
+        if pd.api.types.is_datetime64_any_dtype(df[col]):
+            df[col] = df[col].apply(lambda x: x.tz_localize(None) if isinstance(x, pd.Timestamp) and x.tzinfo is not None else x)
+        
     with pd.ExcelWriter('telegram_data.xlsx', engine='openpyxl') as writer:
         df.to_excel(writer, sheet_name='Messages', index=False)
         participants_df.to_excel(writer, sheet_name='Participants', index=False)
