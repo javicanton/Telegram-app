@@ -42,7 +42,7 @@ If you have questions, comments, or suggestions, please feel free to get in touc
 
 ## Note
 
-This development is part of the author's final Master's project within the Master's in Artificial Intelligence at UNIR.
+This development is part of [the author's final Master's project](https://prosumidorsocial.files.wordpress.com/2023/09/tfm_soundhive_javicanton.pdf) within the Master's in Artificial Intelligence at UNIR.
 
 ---
 
@@ -90,4 +90,4 @@ Si tienes preguntas, comentarios o sugerencias, no dudes en ponerte en contacto:
 
 ## Nota
 
-Este desarrollo forma parte del trabajo final de Máster del autor dentro del Máster de Inteligencia Artificial de la UNIR.
+Este desarrollo forma parte del [Trabajo Final de Máster del autor] (https://prosumidorsocial.files.wordpress.com/2023/09/tfm_soundhive_javicanton.pdf) dentro del Máster de Inteligencia Artificial de la UNIR.
