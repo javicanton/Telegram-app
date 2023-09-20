@@ -90,4 +90,4 @@ Si tienes preguntas, comentarios o sugerencias, no dudes en ponerte en contacto:
 
 ## Nota
 
-Este desarrollo forma parte del [Trabajo Final de Máster del autor] (https://prosumidorsocial.files.wordpress.com/2023/09/tfm_soundhive_javicanton.pdf) dentro del Máster de Inteligencia Artificial de la UNIR.
+Este desarrollo forma parte del [Trabajo Final de Máster del autor](https://prosumidorsocial.files.wordpress.com/2023/09/tfm_soundhive_javicanton.pdf) dentro del Máster de Inteligencia Artificial de la UNIR.
