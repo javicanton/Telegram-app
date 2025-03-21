@@ -9,6 +9,7 @@ Telegram-app is a fact-checking tool designed to track and analyze high-performi
 2. **Engagement Metrics:** Calculates message views, average views per day, and engagement scores.
 3. **Data Processing:** Processes messages and their metadata, including forwarded messages, replies, and media content.
 4. **Export Formats:** Generates both CSV and Excel outputs for flexible data analysis.
+5. **Progress Tracking:** Shows real-time progress of channel extraction with detailed status messages.
 
 ## Installation
 
@@ -64,6 +65,10 @@ python scraper.py
 You will be prompted to enter:
 - Number of days to scrape (default: 7)
 - Maximum messages per channel to collect (default: 500)
+
+The script will show progress for each channel:
+- ✓ Success messages showing the number of messages processed
+- ✗ Error messages for invalid or inaccessible channels
 
 ## Output Files
 
@@ -121,6 +126,7 @@ Telegram-app es una herramienta de verificación de hechos diseñada para rastre
 2. **Métricas de Engagement:** Calcula vistas de mensajes, promedio de vistas por día y puntuaciones de engagement.
 3. **Procesamiento de Datos:** Procesa mensajes y sus metadatos, incluyendo mensajes reenviados, respuestas y contenido multimedia.
 4. **Formatos de Exportación:** Genera salidas en CSV y Excel para un análisis flexible de datos.
+5. **Seguimiento de Progreso:** Muestra el progreso en tiempo real de la extracción de canales con mensajes de estado detallados.
 
 ## Instalación
 
@@ -176,6 +182,10 @@ python scraper.py
 Se te pedirá que ingreses:
 - Número de días a rastrear (por defecto: 7)
 - Máximo de mensajes por canal a recolectar (por defecto: 500)
+
+El script mostrará el progreso para cada canal:
+- ✓ Mensajes de éxito mostrando el número de mensajes procesados
+- ✗ Mensajes de error para canales inválidos o inaccesibles
 
 ## Archivos de Salida
 
