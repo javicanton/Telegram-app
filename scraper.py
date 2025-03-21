@@ -7,9 +7,62 @@ from telethon import TelegramClient
 from telethon.errors import ChannelInvalidError, ChatAdminRequiredError
 from datetime import datetime, timedelta, timezone
 import pandas as pd
+import sys
 
 # Set the working directory to the script's directory
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
+
+def load_credentials(filename='credentials.txt'):
+    """
+    Carga las credenciales desde un archivo o variables de entorno.
+    Prioriza las variables de entorno sobre el archivo.
+    """
+    credentials = {}
+    
+    # Intentar cargar desde variables de entorno primero
+    api_id = os.getenv('TELEGRAM_API_ID')
+    api_hash = os.getenv('TELEGRAM_API_HASH')
+    
+    if api_id and api_hash:
+        try:
+            credentials['API_ID'] = int(api_id)
+            credentials['API_HASH'] = api_hash
+            return credentials
+        except ValueError:
+            print("Error: TELEGRAM_API_ID debe ser un número entero válido en las variables de entorno")
+            sys.exit(1)
+    
+    # Si no hay variables de entorno, intentar cargar desde archivo
+    try:
+        with open(filename, 'r') as file:
+            for line in file:
+                key, value = line.strip().split('=')
+                if key == 'API_ID':
+                    try:
+                        credentials[key] = int(value)
+                    except ValueError:
+                        print(f"Error: API_ID debe ser un número entero válido en {filename}")
+                        print("También puedes configurar las credenciales usando variables de entorno:")
+                        print("TELEGRAM_API_ID y TELEGRAM_API_HASH")
+                        sys.exit(1)
+                else:
+                    credentials[key] = value
+    except FileNotFoundError:
+        print(f"Error: No se encontró el archivo {filename}")
+        print("Puedes:")
+        print(f"1. Crear el archivo {filename} basándote en credentials.example.txt")
+        print("2. O configurar las variables de entorno:")
+        print("   TELEGRAM_API_ID y TELEGRAM_API_HASH")
+        sys.exit(1)
+    
+    if not credentials:
+        print("Error: No se encontraron credenciales")
+        print("Configura tus credenciales usando uno de estos métodos:")
+        print(f"1. Crear el archivo {filename} basándote en credentials.example.txt")
+        print("2. Configurar las variables de entorno TELEGRAM_API_ID y TELEGRAM_API_HASH")
+        sys.exit(1)
+    
+    return credentials
 
 # Prompt the user for the number of days:
 try:
@@ -28,15 +81,8 @@ except ValueError:
 # Calculate the time for 24 hours ago with timezone information
 time_days_ago = datetime.now(timezone.utc) - timedelta(days=days_to_scrape)
 
-# Loading credentials from credentials.txt
-def load_credentials(filename):
-    credentials = {}
-    with open(filename, 'r') as file:
-        for line in file:
-            key, value = line.strip().split('=')
-            credentials[key] = value
-    return credentials
-creds = load_credentials('credentials.txt')
+# Load credentials
+creds = load_credentials()
 API_ID = creds['API_ID']
 API_HASH = creds['API_HASH']
 
@@ -98,14 +144,6 @@ def extract_media_details(media):
         'Media Caption': getattr(media, 'caption', None)
     }
 
-async def extract_participants(client, channel):
-    try:
-        participants = await client.get_participants(channel)
-        return {p.id: p.participant for p in participants}
-    except ChatAdminRequiredError:
-        print(f"Admin privileges required for channel '{channel}'. Skipping participant extraction.")
-        return {}
-
 def load_existing_data(filename):
     try:
         return pd.read_csv(filename)
@@ -113,7 +151,6 @@ def load_existing_data(filename):
         return pd.DataFrame()
 
 existing_messages = load_existing_data('telegram_messages.csv')
-existing_participants = load_existing_data('telegram_participants.csv')
 
 def load_existing_message_ids(filename):
     try:
@@ -128,7 +165,6 @@ EXISTING_MESSAGE_IDS = load_existing_message_ids('telegram_messages.csv')
 
 async def main():
     all_data = []
-    participants_list = []
 
     for channel in CHANNELS:
         try:
@@ -180,15 +216,6 @@ async def main():
                 all_data.append(data)                     
                 
                 last_date = messages[-1].date.replace(tzinfo=timezone.utc)
-            
-            # Extract participants (might be limited for large channels)
-            participants_data = await extract_participants(client, channel)
-            for user_id, role in participants_data.items():
-                participants_list.append({
-                    'Channel': channel,
-                    'User ID': user_id,
-                    'Role': role
-                })
 
         except ChannelInvalidError:
             print(f"Channel '{channel}' is invalid or not accessible. Skipping to the next channel.")
@@ -217,12 +244,6 @@ async def main():
         df['Label'] = ''
     df['Label'].fillna('', inplace=True)  
     
-    participants_df = pd.concat([existing_participants, pd.DataFrame(participants_list)], ignore_index=True)
-    participants_df.drop_duplicates(subset=['User ID', 'Channel'], inplace=True, keep='last')
-    
-    # Check if the CSV file exists
-    file_exists = os.path.isfile('telegram_messages.csv')
-
     # Convert specific columns and save to CSV
     # Convertir columnas específicas a entero
     columnas_a_convertir = ['Message ID', 'Sender ID', 'Reply To', 'Forwarded From', 'Views', 'Members Count']
@@ -231,14 +252,6 @@ async def main():
             df[columna] = df[columna].fillna(0).astype(int)
 
     df.to_csv('telegram_messages.csv', index=False, encoding='utf-8')
-    participants_df.to_csv('telegram_participants.csv', index=False, encoding='utf-8')
-
-    # Do the same for participants CSV
-    file_exists_participants = os.path.isfile('telegram_participants.csv')
-    if file_exists_participants:
-        participants_df.to_csv('telegram_participants.csv', index=False, encoding='utf-8', mode='a', header=False)
-    else:
-        participants_df.to_csv('telegram_participants.csv', index=False, encoding='utf-8')
 
     # Date conversion and save to Excel
     datetime_columns = df.select_dtypes(include=['datetime64[ns]']).columns
@@ -249,7 +262,6 @@ async def main():
         
     with pd.ExcelWriter('telegram_data.xlsx', engine='openpyxl') as writer:
         df.to_excel(writer, sheet_name='Messages', index=False)
-        participants_df.to_excel(writer, sheet_name='Participants', index=False)
 
 # Ensure the client is started before running the main coroutine
 with client:
