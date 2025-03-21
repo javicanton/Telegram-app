@@ -5,9 +5,14 @@ import csv
 import os
 from telethon import TelegramClient
 from telethon.errors import ChannelInvalidError, ChatAdminRequiredError
+from telethon.tl.types import Message, Channel, User
+from telethon.tl.custom import Message as CustomMessage
+from telethon.tl.types.messages import Messages
+from telethon.tl.types.messages import ChannelMessages
 from datetime import datetime, timedelta, timezone
 import pandas as pd
 import sys
+from typing import List, Optional, Dict, Any, Union, cast
 
 # Set the working directory to the script's directory
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
@@ -170,27 +175,39 @@ async def main():
         try:
             channel_details = await client.get_entity(channel)
             messages = await client.get_messages(channel, limit=MAX_MESSAGES_PER_CHANNEL)
+            
+            if not messages:
+                print(f"No se encontraron mensajes para el canal '{channel}'. Continuando con el siguiente.")
+                continue
+
+            # Convert messages to list for easier handling
+            messages_list = list(messages)
 
             # Group messages by their date
-            grouped_messages = {}
-            for message in messages:
-                date_str = message.date.strftime('%Y-%m-%d')
-                if date_str not in grouped_messages:
-                    grouped_messages[date_str] = []
-                grouped_messages[date_str].append(message)
+            grouped_messages: Dict[str, List[Message]] = {}
+            for message in messages_list:
+                if message and message.date:
+                    date_str = message.date.strftime('%Y-%m-%d')
+                    if date_str not in grouped_messages:
+                        grouped_messages[date_str] = []
+                    grouped_messages[date_str].append(message)
 
             # Calculate daily average views
-            daily_average_views = {}
+            daily_average_views: Dict[str, float] = {}
             for date_str, daily_messages in grouped_messages.items():
                 views_list = [message.views for message in daily_messages if message.views is not None]
                 daily_average_views[date_str] = sum(views_list) / len(views_list) if views_list else 0
 
-            for message in messages:
-                data = {}
+            for message in messages_list:
+                if not message or not message.date:
+                    continue
+                    
+                data: Dict[str, Any] = {}
                 data.update(extract_channel_details(channel_details))
                 data.update(extract_message_details(message))
                 # If this message ID for the current channel already exists, skip it
-                if (channel_details.username, message.id) in EXISTING_MESSAGE_IDS:
+                channel_username = getattr(channel_details, 'username', None)
+                if channel_username and (channel_username, message.id) in EXISTING_MESSAGE_IDS:
                     continue
     
                 # Update the URL and Embed columns using the channel's username
@@ -215,10 +232,14 @@ async def main():
 
                 all_data.append(data)                     
                 
-                last_date = messages[-1].date.replace(tzinfo=timezone.utc)
+                # Get the last message's date safely
+                if messages_list and messages_list[-1] and messages_list[-1].date:
+                    last_date = messages_list[-1].date.replace(tzinfo=timezone.utc)
+
+            print(f"✓ Extracción completada para el canal '{channel}'. Se han procesado {len(messages_list)} mensajes.")
 
         except ChannelInvalidError:
-            print(f"Channel '{channel}' is invalid or not accessible. Skipping to the next channel.")
+            print(f"✗ Canal '{channel}' inválido o no accesible. Continuando con el siguiente.")
 
     # Convert the new data to a DataFrame
     new_data_df = pd.DataFrame(all_data)
@@ -241,25 +262,29 @@ async def main():
     df.drop_duplicates(subset=['Message ID', 'Username'], inplace=True, keep='first')
         
     if 'Label' not in df.columns:
-        df['Label'] = ''
-    df['Label'].fillna('', inplace=True)  
+        df['Label'] = pd.Series(dtype='object')
     
-    # Convert specific columns and save to CSV
-    # Convertir columnas específicas a entero
+    # Corregir el manejo de la columna Label
+    df['Label'] = df['Label'].astype('object')
+    df.loc[df['Label'].isna(), 'Label'] = ''
+    
+    # Convertir columnas específicas a entero de manera segura
     columnas_a_convertir = ['Message ID', 'Sender ID', 'Reply To', 'Forwarded From', 'Views', 'Members Count']
     for columna in columnas_a_convertir:
         if columna in df.columns and df[columna].dtype not in ['datetime64[ns]', 'timedelta64[ns]']:
-            df[columna] = df[columna].fillna(0).astype(int)
+            df[columna] = pd.to_numeric(df[columna], errors='coerce').fillna(0).astype(int)
 
     df.to_csv('telegram_messages.csv', index=False, encoding='utf-8')
 
-    # Date conversion and save to Excel
-    datetime_columns = df.select_dtypes(include=['datetime64[ns]']).columns
-    # Date conversion and save to Excel
-    for col in df.columns:
-        if pd.api.types.is_datetime64_any_dtype(df[col]):
-            df[col] = df[col].apply(lambda x: x.tz_localize(None) if isinstance(x, pd.Timestamp) and x.tzinfo is not None else x)
-        
+    # Convertir todas las columnas de fecha a datetime sin zona horaria
+    for col in ['Date Sent', 'Edit Date', 'Creation Date']:
+        if col in df.columns:
+            try:
+                df[col] = pd.to_datetime(df[col]).dt.tz_convert('UTC').dt.tz_localize(None)
+            except (AttributeError, TypeError):
+                # Si la columna no tiene zona horaria o ya está en el formato correcto
+                df[col] = pd.to_datetime(df[col])
+    
     with pd.ExcelWriter('telegram_data.xlsx', engine='openpyxl') as writer:
         df.to_excel(writer, sheet_name='Messages', index=False)
 
