@@ -15,6 +15,7 @@ Telegram-app is a fact-checking tool designed to track and analyze high-performi
 
 1. Clone this repository
 2. Install dependencies:
+
    ```bash
    pip install -r requirements.txt
    ```
@@ -27,22 +28,24 @@ Before running the application, you need to configure:
    You need to configure your Telegram API credentials. There are two ways to do this:
 
    a) **Using Environment Variables (Recommended):**
+
    ```bash
    # Add these to your ~/.zshrc (macOS/Linux with zsh) or ~/.bashrc (Linux with bash)
    export TELEGRAM_API_ID="your_api_id"
    export TELEGRAM_API_HASH="your_api_hash"
    ```
-   
+
    b) **Using credentials.txt:**
    - Create a `credentials.txt` file based on `credentials.example.txt`
    - Add your API credentials in the following format:
+
    ```
    API_ID=your_api_id
    API_HASH=your_api_hash
    ```
 
    To obtain your API credentials:
-   1. Visit https://my.telegram.org/auth
+   1. Visit <https://my.telegram.org/auth>
    2. Log in with your phone number
    3. Go to "API development tools"
    4. Create a new application
@@ -50,23 +53,26 @@ Before running the application, you need to configure:
 
 2. **telegram_channels.csv:**  
    This file contains the list of Telegram channels you want to monitor. To set it up:
-   
+
    1. Create a `telegram_channels.csv` file based on `telegram_channels.example.csv`
    2. Add one channel username per line (without the @ symbol)
-   3. For example, if you want to monitor https://t.me/example, add just "example"
+   3. For example, if you want to monitor <https://t.me/example>, add just "example"
 
 ## Usage
 
 Run the script with:
+
 ```bash
 python scraper.py
 ```
 
 You will be prompted to enter:
+
 - Number of days to scrape (default: 7)
 - Maximum messages per channel to collect (default: 500)
 
 The script will show progress for each channel:
+
 - ✓ Success messages showing the number of messages processed
 - ✗ Error messages for invalid or inaccessible channels
 
@@ -132,6 +138,7 @@ Telegram-app es una herramienta de verificación de hechos diseñada para rastre
 
 1. Clona este repositorio
 2. Instala las dependencias:
+
    ```bash
    pip install -r requirements.txt
    ```
@@ -144,22 +151,24 @@ Antes de ejecutar la aplicación, necesitas configurar:
    Necesitas configurar tus credenciales de la API de Telegram. Hay dos formas de hacerlo:
 
    a) **Usando Variables de Entorno (Recomendado):**
+
    ```bash
    # Añade esto a tu ~/.zshrc (macOS/Linux con zsh) o ~/.bashrc (Linux con bash)
    export TELEGRAM_API_ID="tu_api_id"
    export TELEGRAM_API_HASH="tu_api_hash"
    ```
-   
+
    b) **Usando credentials.txt:**
    - Crea un archivo `credentials.txt` basado en `credentials.example.txt`
    - Añade tus credenciales de API en el siguiente formato:
+
    ```
    API_ID=tu_api_id
    API_HASH=tu_api_hash
    ```
 
    Para obtener tus credenciales de API:
-   1. Visita https://my.telegram.org/auth
+   1. Visita <https://my.telegram.org/auth>
    2. Inicia sesión con tu número de teléfono
    3. Ve a "API development tools"
    4. Crea una nueva aplicación
@@ -167,23 +176,26 @@ Antes de ejecutar la aplicación, necesitas configurar:
 
 2. **telegram_channels.csv:**  
    Este archivo contiene la lista de canales de Telegram que deseas monitorizar. Para configurarlo:
-   
+
    1. Crea un archivo `telegram_channels.csv` basado en `telegram_channels.example.csv`
    2. Añade un nombre de usuario de canal por línea (sin el símbolo @)
-   3. Por ejemplo, si quieres monitorizar https://t.me/ejemplo, añade solo "ejemplo"
+   3. Por ejemplo, si quieres monitorizar <https://t.me/ejemplo>, añade solo "ejemplo"
 
 ## Uso
 
 Ejecuta el script con:
+
 ```bash
 python scraper.py
 ```
 
 Se te pedirá que ingreses:
+
 - Número de días a rastrear (por defecto: 7)
 - Máximo de mensajes por canal a recolectar (por defecto: 500)
 
 El script mostrará el progreso para cada canal:
+
 - ✓ Mensajes de éxito mostrando el número de mensajes procesados
 - ✗ Mensajes de error para canales inválidos o inaccesibles
 
