@@ -1,18 +1,62 @@
 ## Telegram Scraper
 # Import libraries
-import asyncio
+import subprocess
+import sys
+import importlib.util
 import csv
 import os
+from datetime import datetime, timedelta, timezone
+from typing import List, Optional, Dict, Any, Union, cast
+import asyncio
+
+def install_package(package_name):
+    """Instala un paquete específico."""
+    print(f"\nInstalando {package_name}...")
+    try:
+        subprocess.check_call([sys.executable, "-m", "pip", "install", package_name])
+        print(f"✓ {package_name} instalado correctamente")
+        return True
+    except subprocess.CalledProcessError as e:
+        print(f"Error al instalar {package_name}: {e}")
+        return False
+
+def check_and_install_dependencies():
+    """Verifica e instala las dependencias necesarias."""
+    required_packages = [
+        'pandas',
+        'telethon',
+        'openpyxl',
+        'python-dotenv',
+        'asyncio'
+    ]
+    
+    # Primero actualizar pip
+    print("\nActualizando pip...")
+    try:
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "--upgrade", "pip"])
+    except subprocess.CalledProcessError:
+        print("Advertencia: No se pudo actualizar pip, continuando...")
+
+    # Verificar e instalar cada paquete individualmente
+    for package in required_packages:
+        if importlib.util.find_spec(package) is None:
+            if not install_package(package):
+                print(f"\nError: No se pudo instalar {package}")
+                print(f"Por favor, instala manualmente ejecutando:")
+                print(f"pip install {package}")
+                sys.exit(1)
+
+# Verificar e instalar dependencias
+check_and_install_dependencies()
+
+# Importar las dependencias después de la instalación
+import pandas as pd
 from telethon import TelegramClient
 from telethon.errors import ChannelInvalidError, ChatAdminRequiredError
 from telethon.tl.types import Message, Channel, User
 from telethon.tl.custom import Message as CustomMessage
 from telethon.tl.types.messages import Messages
 from telethon.tl.types.messages import ChannelMessages
-from datetime import datetime, timedelta, timezone
-import pandas as pd
-import sys
-from typing import List, Optional, Dict, Any, Union, cast
 
 # Set the working directory to the script's directory
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
@@ -386,11 +430,8 @@ async def main():
                     # Calcular la diferencia con el promedio
                     if data['Average Views'] > 0:
                         data['Average Difference'] = (message.views or 0) - data['Average Views']
-                        # Calcular el score normalizado entre -1 y 1
-                        if data['Average Difference'] > 0:
-                            data['Score'] = min(data['Average Difference'] / data['Average Views'], 1)
-                        else:
-                            data['Score'] = max(data['Average Difference'] / data['Average Views'], -1)
+                        # Calcular el score como la proporción de views respecto a la media
+                        data['Score'] = (message.views or 0) / data['Average Views']
                     else:
                         data['Average Difference'] = 0
                         data['Score'] = 0
@@ -429,12 +470,12 @@ async def main():
                 # Añadir columnas faltantes a existing_messages
                 for col in new_data_df.columns:
                     if col not in existing_messages.columns:
-                        existing_messages[col] = None
+                        existing_messages[col] = pd.NA
                 
                 # Añadir columnas faltantes a new_data_df
                 for col in existing_messages.columns:
                     if col not in new_data_df.columns:
-                        new_data_df[col] = None
+                        new_data_df[col] = pd.NA
 
             # Set the 'Message ID' and 'Username' columns as the index for both DataFrames
             if 'Message ID' in existing_messages.columns and 'Username' in existing_messages.columns:
@@ -443,7 +484,7 @@ async def main():
             if 'Message ID' in new_data_df.columns and 'Username' in new_data_df.columns:
                 new_data_df.set_index(['Message ID', 'Username'], inplace=True)
 
-            # Update the existing data with the new data
+            # Actualizar todos los campos, incluyendo el score
             existing_messages.update(new_data_df)
 
             # Reset the index of the existing data
@@ -451,8 +492,44 @@ async def main():
             new_data_df.reset_index(inplace=True)
 
             # Concatenar los DataFrames asegurando que las columnas coincidan
-            df = pd.concat([existing_messages, new_data_df], ignore_index=True)
+            if existing_messages.empty:
+                df = new_data_df
+            else:
+                # Asegurarse de que las columnas coincidan entre los DataFrames
+                for col in new_data_df.columns:
+                    if col not in existing_messages.columns:
+                        existing_messages[col] = pd.NA
+                
+                for col in existing_messages.columns:
+                    if col not in new_data_df.columns:
+                        new_data_df[col] = pd.NA
+                
+                # Convertir columnas vacías a NA antes de la concatenación
+                existing_messages = existing_messages.replace('', pd.NA)
+                new_data_df = new_data_df.replace('', pd.NA)
+                
+                # Preservar las etiquetas existentes
+                if 'Label' in existing_messages.columns:
+                    # Crear un diccionario de etiquetas existentes
+                    existing_labels = existing_messages.set_index(['Message ID', 'Username'])['Label'].to_dict()
+                    
+                    # Aplicar las etiquetas existentes a los nuevos mensajes
+                    new_data_df['Label'] = new_data_df.apply(
+                        lambda row: existing_labels.get((row['Message ID'], row['Username']), ''),
+                        axis=1
+                    )
+                
+                # Concatenar los DataFrames
+                df = pd.concat([existing_messages, new_data_df], ignore_index=True, sort=False)
+            
+            # Eliminar duplicados
             df.drop_duplicates(subset=['Message ID', 'Username'], inplace=True, keep='first')
+
+            # Recalcular el score para todos los mensajes
+            df['Score'] = df.apply(
+                lambda row: (row['Views'] or 0) / row['Average Views'] if row['Average Views'] > 0 else 0,
+                axis=1
+            )
                 
             # Convertir columnas específicas a entero de manera segura
             columnas_a_convertir = ['Message ID', 'Views', 'Members Count', 'Forwards', 'Replies']
@@ -465,10 +542,6 @@ async def main():
             for columna in columnas_texto:
                 if columna in df.columns:
                     df[columna] = df[columna].fillna('')
-
-            # Asegurar que el score esté entre -1 y 1
-            if 'Score' in df.columns:
-                df['Score'] = df['Score'].clip(-1, 1)
 
             # Eliminar columnas vacías o no deseadas
             columnas_a_eliminar = []  # Ya no eliminamos ninguna columna

@@ -1,3 +1,108 @@
+# Telegram Message Scraper
+
+Este script permite extraer y analizar mensajes de canales de Telegram.
+
+## Requisitos Previos
+
+- Python 3.7 o superior
+- pip (gestor de paquetes de Python)
+
+## Instalación
+
+1. Clona este repositorio:
+
+```bash
+git clone [URL_DEL_REPOSITORIO]
+cd [NOMBRE_DEL_DIRECTORIO]
+```
+
+2. El script intentará instalar automáticamente las dependencias necesarias. Si encuentras algún error, sigue estas instrucciones:
+
+### Solución de Problemas de Instalación
+
+#### Error: "ModuleNotFoundError: No module named 'X'"
+
+Si recibes este error para cualquier módulo (pandas, telethon, etc.), intenta los siguientes pasos:
+
+1. Actualiza pip:
+
+```bash
+python -m pip install --upgrade pip
+```
+
+2. Instala las dependencias manualmente:
+
+```bash
+pip install pandas telethon openpyxl python-dotenv asyncio
+```
+
+3. Si el comando anterior falla, intenta con:
+
+```bash
+python -m pip install pandas telethon openpyxl python-dotenv asyncio
+```
+
+4. Si sigues teniendo problemas, intenta instalar cada paquete individualmente:
+
+```bash
+pip install pandas
+pip install telethon
+pip install openpyxl
+pip install python-dotenv
+pip install asyncio
+```
+
+#### Problemas Específicos por Sistema Operativo
+
+##### Windows
+
+- Asegúrate de que Python esté en tu PATH
+- Ejecuta los comandos pip desde el símbolo del sistema como administrador
+
+##### macOS/Linux
+
+- Usa `python3` en lugar de `python` si tienes múltiples versiones instaladas
+- Si usas virtualenv, asegúrate de activarlo antes de instalar las dependencias
+
+## Uso
+
+1. Ejecuta el script:
+
+```bash
+python scraper.py
+```
+
+2. Sigue las instrucciones en pantalla para:
+   - Proporcionar tus credenciales de Telegram API
+   - Especificar los canales a scrapear
+   - Configurar los parámetros de extracción
+
+## Solución de Problemas Comunes
+
+### Error de Conexión con Telegram
+
+- Verifica tu conexión a internet
+- Asegúrate de que las credenciales de API sean correctas
+- Intenta ejecutar el script nuevamente
+
+### Errores de Memoria
+
+- Reduce el número de mensajes a extraer
+- Aumenta el intervalo entre solicitudes
+
+### Problemas con el Archivo CSV
+
+- Asegúrate de tener permisos de escritura en el directorio
+- Cierra cualquier programa que esté usando el archivo CSV
+
+## Soporte
+
+Si encuentras algún problema no cubierto en esta documentación, por favor:
+
+1. Revisa los mensajes de error detallados
+2. Intenta las soluciones mencionadas arriba
+3. Si el problema persiste, abre un issue en el repositorio
+
 # Telegram-app
 
 **Description:**  
@@ -89,6 +194,30 @@ The script generates two output files:
    - Excel version of the data
    - Same information as the CSV but in Excel format
    - Better for visual inspection and quick analysis
+
+## Métricas y Puntuaciones
+
+### Score de Engagement
+
+El score de cada mensaje se calcula como la proporción entre el número de views del mensaje y la media de views del día:
+
+```
+Score = Views del mensaje / Media de views del día
+```
+
+Este score tiene las siguientes características:
+
+- Un score de 1.0 significa que el mensaje tiene exactamente la media de views del día
+- Un score de 2.0 significa que tiene el doble de views que la media
+- Un score de 0.5 significa que tiene la mitad de views que la media
+- El score puede ser mayor que 1 (no tiene límite superior)
+- El score mínimo es 0 (cuando no hay views o la media es 0)
+
+Esta métrica ayuda a identificar:
+
+- Mensajes que están "sobreperforming" (score > 1)
+- Mensajes que están "underperforming" (score < 1)
+- Tendencias de engagement a lo largo del tiempo
 
 ## Privacy and Security
 
@@ -212,6 +341,30 @@ El script genera dos archivos de salida:
    - Versión Excel de los datos
    - Misma información que el CSV pero en formato Excel
    - Mejor para inspección visual y análisis rápido
+
+## Métricas y Puntuaciones
+
+### Score de Engagement
+
+El score de cada mensaje se calcula como la proporción entre el número de views del mensaje y la media de views del día:
+
+```
+Score = Views del mensaje / Media de views del día
+```
+
+Este score tiene las siguientes características:
+
+- Un score de 1.0 significa que el mensaje tiene exactamente la media de views del día
+- Un score de 2.0 significa que tiene el doble de views que la media
+- Un score de 0.5 significa que tiene la mitad de views que la media
+- El score puede ser mayor que 1 (no tiene límite superior)
+- El score mínimo es 0 (cuando no hay views o la media es 0)
+
+Esta métrica ayuda a identificar:
+
+- Mensajes que están "sobreperforming" (score > 1)
+- Mensajes que están "underperforming" (score < 1)
+- Tendencias de engagement a lo largo del tiempo
 
 ## Privacidad y Seguridad
 
