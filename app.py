@@ -22,11 +22,11 @@ def load_data():
         # Convertir los mensajes a DataFrame
         df = pd.DataFrame(data['messages'])
         
-        # Verificar y limpiar la columna Channel
-        if 'Channel' in df.columns:
+        # Verificar y limpiar la columna Title (usada como Channel)
+        if 'Title' in df.columns:
             # Limpiar valores nulos o vacíos
-            df['Channel'] = df['Channel'].fillna('Desconocido')
-            df['Channel'] = df['Channel'].replace('', 'Desconocido')
+            df['Title'] = df['Title'].fillna('Desconocido')
+            df['Title'] = df['Title'].replace('', 'Desconocido')
         
         # Convertir columnas de fecha si existen
         date_columns = ['Date', 'Date Sent', 'Creation Date', 'Edit Date']
@@ -63,8 +63,8 @@ def index():
 
     # Obtener datos para filtros (canales, fechas)
     channels = []
-    if 'Channel' in df.columns:
-        channels = sorted(df['Channel'].unique().tolist())
+    if 'Title' in df.columns:
+        channels = sorted(df['Title'].unique().tolist())
         print(f"\nCanales que se pasan a la plantilla: {channels}")
     
     min_date = df['Date'].min().strftime('%Y-%m-%d') if 'Date' in df.columns and not df['Date'].empty else ''
@@ -111,8 +111,8 @@ def load_more(offset=0):
                 return ('', 204)
 
         # Filtro de Canal
-        if filters['channel'] and 'Channel' in filtered_df.columns:
-            filtered_df = filtered_df[filtered_df['Channel'] == filters['channel']]
+        if filters['channel'] and 'Title' in filtered_df.columns:
+            filtered_df = filtered_df[filtered_df['Title'] == filters['channel']]
 
         # Filtro de Puntuación (Score) Mínima
         if filters['scoreMin'] and 'Score' in filtered_df.columns:
@@ -307,11 +307,11 @@ def filter_messages():
                 print(f"Error en filtro de fechas: {str(e)}")
                 return jsonify(success=False, error=f"Error en filtro de fechas: {str(e)}"), 400
 
-        # Filtro de Canal
+        # Filtro de Canal (usando Title)
         channel = filters.get('channel')
-        if channel and 'Channel' in filtered_df.columns:
+        if channel and 'Title' in filtered_df.columns:
             try:
-                filtered_df = filtered_df[filtered_df['Channel'] == channel]
+                filtered_df = filtered_df[filtered_df['Title'] == channel]
                 print(f"Filtrado por canal: {channel}")
             except Exception as e:
                 print(f"Error en filtro de canal: {str(e)}")

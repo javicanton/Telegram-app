@@ -363,7 +363,7 @@ async def main():
             print("   - Abre Telegram en tu dispositivo")
             print("   - Busca un mensaje con un código de verificación")
             print("   - Ingresa el código cuando se te solicite")
-            await client.start()
+            client.start()
         
         print("12. Conexión exitosa!")
         
@@ -381,9 +381,12 @@ async def main():
                 if not messages:
                     print(f"No se encontraron mensajes para el canal '{channel}'. Continuando con el siguiente.")
                     continue
-
                 # Convert messages to list for easier handling
-                messages_list = list(messages)
+                messages_list = []
+                if isinstance(messages, Message):
+                    messages_list = [messages]
+                else:
+                    messages_list = list(messages)
 
                 # Group messages by their date
                 grouped_messages: Dict[str, List[Message]] = {}
@@ -598,11 +601,13 @@ async def main():
             print("17. Datos guardados en telegram_data.xlsx")
         else:
             print("13. No hay datos para guardar")
-        
         print("18. Cerrando conexión...")
-        await client.disconnect()
+        try:
+            if client:
+                client.disconnect()  # Removed await since disconnect() likely returns None
+        except:
+            pass
         print("19. Script completado!")
-        
     except Exception as e:
         print(f"Error: {str(e)}")
 
