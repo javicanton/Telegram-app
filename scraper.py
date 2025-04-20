@@ -8,6 +8,7 @@ import os
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional, Dict, Any, Union, cast
 import asyncio
+import json
 
 def install_package(package_name):
     """Instala un paquete específico."""
@@ -552,6 +553,33 @@ async def main():
             df.to_csv('telegram_messages.csv', index=False, encoding='utf-8')
             print("14. Datos guardados en telegram_messages.csv")
 
+            # Guardar también en JSON
+            print("15. Guardando datos en JSON...")
+            
+            # Crear una copia del DataFrame para JSON
+            df_json = df.copy()
+            
+            # Eliminar columnas que no son serializables
+            columns_to_drop = ['Photo', 'Media', 'Entities']
+            for col in columns_to_drop:
+                if col in df_json.columns:
+                    df_json = df_json.drop(columns=[col])
+            
+            # Convertir las fechas a string ISO
+            for col in ['Date Sent', 'Creation Date', 'Edit Date']:
+                if col in df_json.columns:
+                    df_json[col] = df_json[col].astype(str)
+            
+            # Convertir el DataFrame a un formato JSON amigable
+            json_data = {
+                'messages': df_json.to_dict(orient='records')
+            }
+            
+            # Guardar en JSON con formato legible
+            with open('telegram_messages.json', 'w', encoding='utf-8') as f:
+                json.dump(json_data, f, ensure_ascii=False, indent=4)
+            print("16. Datos guardados en telegram_messages.json")
+
             # Convertir todas las columnas de fecha a datetime sin zona horaria
             for col in ['Date Sent', 'Creation Date', 'Edit Date']:
                 if col in df.columns:
@@ -567,13 +595,13 @@ async def main():
             # Guardar en Excel
             with pd.ExcelWriter('telegram_data.xlsx', engine='openpyxl') as writer:
                 df.to_excel(writer, sheet_name='Messages', index=False)
-            print("15. Datos guardados en telegram_data.xlsx")
+            print("17. Datos guardados en telegram_data.xlsx")
         else:
             print("13. No hay datos para guardar")
         
-        print("16. Cerrando conexión...")
+        print("18. Cerrando conexión...")
         await client.disconnect()
-        print("17. Script completado!")
+        print("19. Script completado!")
         
     except Exception as e:
         print(f"Error: {str(e)}")

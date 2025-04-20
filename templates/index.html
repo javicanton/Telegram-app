@@ -3,6 +3,9 @@
 <head>
     <title>Telegram Messages Monitorization</title>
     <style>
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+        }
         .message-container {
             display: flex;
             flex-wrap: wrap;
@@ -59,135 +62,565 @@
         .goto-message-btn:hover {
             background-color: #0056b3;
         }
+        .filters-container {
+            margin: 20px;
+            padding: 15px;
+            background-color: #f5f5f5;
+            border-radius: 5px;
+            display: flex; /* Usar flexbox para alinear items */
+            flex-wrap: wrap; /* Permitir que los elementos se envuelvan */
+            gap: 15px; /* Espacio entre grupos de filtros */
+            align-items: center; /* Alinear verticalmente los items */
+        }
+        .filter-group {
+            margin-bottom: 0; /* Quitar margen inferior ya que usamos gap */
+            display: flex; /* Alinear label e input/select */
+            align-items: center;
+            gap: 5px; /* Espacio entre label y control */
+        }
+        .filter-group label {
+            /* display: inline-block; Ya no es necesario con flex */
+            /* width: 120px; Quitar ancho fijo o ajustar según necesidad */
+            white-space: nowrap; /* Evitar que la etiqueta se rompa */
+        }
+        .filter-group input, .filter-group select {
+            padding: 5px;
+            /* margin-right: 10px; Ya no es necesario con gap */
+            border: 1px solid #ccc;
+            border-radius: 3px;
+        }
+        #applyFilters, #resetFilters {
+             padding: 8px 15px;
+             font-size: 14px;
+             cursor: pointer;
+             border-radius: 4px;
+             border: none;
+        }
+        #applyFilters {
+             background-color: #007bff;
+             color: white;
+        }
+        #resetFilters {
+             background-color: #6c757d;
+             color: white;
+        }
+        .pagination-btn {
+            padding: 8px 12px;
+            margin: 0 4px;
+            border: 1px solid #ddd;
+            background-color: #fff;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        .pagination-btn:hover {
+            background-color: #f0f0f0;
+        }
+        .pagination-btn.active {
+            background-color: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+        .score-explanation {
+            background-color: #f8f9fa;
+            border-left: 4px solid #007bff;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .score-explanation p {
+            margin: 0;
+            color: #495057;
+            line-height: 1.5;
+        }
     </style>
 </head>
 <body>
     <h1>Overperforming Messages in Telegram</h1>
+    <div class="score-explanation">
+        <p>El "Overperforming Score" es una métrica que indica cuánto mejor se desempeña un mensaje en comparación con el promedio de su canal. Un score de 1.0 significa que el mensaje tiene un rendimiento promedio, mientras que un score mayor a 1.0 indica que el mensaje está superando las expectativas. Por ejemplo, un score de 2.0 significa que el mensaje está obteniendo el doble de interacciones de lo esperado.</p>
+    </div>
     <h2>Label messages as relevant or not relevant</h2>
-    <div id="messageContainer" class="message-container">
-        {% for message in messages %}
-        <div class="message-card">
-            <!-- Display Overperforming Score as the card title -->
-            <h2 class="score-title">Overperforming Score: <span class="score-value">{{ message['Score']|round(2) }}</span>x</h2>
-
-            <!-- Display the message using the Embed column -->
-            {{ message['Embed']|safe }}
-                     
-            <!-- Buttons -->
-            <div class="button-container">
-                {% if message['Label'] == 1 %}
-                    <button class="relevant-btn" data-message-id="{{ message['Message ID'] }}" style="background-color: green">Relevant</button>
-                    <button class="not-relevant-btn" data-message-id="{{ message['Message ID'] }}">Not Relevant</button>
-                {% elif message['Label'] == 0 %}
-                    <button class="relevant-btn" data-message-id="{{ message['Message ID'] }}">Relevant</button>
-                    <button class="not-relevant-btn" data-message-id="{{ message['Message ID'] }}" style="background-color: red">Not Relevant</button>
-                {% else %}
-                    <button class="relevant-btn" data-message-id="{{ message['Message ID'] }}">Relevant</button>
-                    <button class="not-relevant-btn" data-message-id="{{ message['Message ID'] }}">Not Relevant</button>
-                {% endif %}
-                <a href="{{ message['URL'] }}" target="_blank" class="goto-message-btn">Go to message</a>
-            </div>
+    
+    <div class="filters-container">
+        <div class="filter-group">
+            <label for="dateStart">Desde:</label>
+            <input type="date" id="dateStart" name="dateStart">
         </div>
-        {% endfor %}
+        <div class="filter-group">
+            <label for="dateEnd">Hasta:</label>
+            <input type="date" id="dateEnd" name="dateEnd">
+        </div>
+        <div class="filter-group">
+            <label for="channelFilter">Canal:</label>
+            <select id="channelFilter" name="channel">
+                <option value="">Todos</option>
+                {% for channel in channels %}
+                <option value="{{ channel }}">{{ channel }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="filter-group">
+            <label for="scoreMin">Puntuación Mín:</label>
+            <input type="number" id="scoreMin" name="scoreMin" placeholder="Ej: 1.5" step="0.1">
+        </div>
+         <div class="filter-group">
+            <label for="scoreMax">Puntuación Máx:</label>
+            <input type="number" id="scoreMax" name="scoreMax" placeholder="Ej: 10" step="0.1">
+        </div>
+        <div class="filter-group">
+            <label for="mediaTypeFilter">Tipo Media:</label>
+            <select id="mediaTypeFilter" name="mediaType">
+                <option value="">Todos</option>
+                <option value="text">Texto</option>
+                <option value="photo">Foto</option>
+                <option value="video">Video</option>
+                <option value="link">Enlace</option>
+                <option value="document">Documento</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label for="sortBy">Ordenar por:</label>
+            <select id="sortBy" name="sortBy">
+                <option value="score">Puntuación (Score)</option>
+                <option value="views">Número de Vistas</option>
+            </select>
+        </div>
+        <button id="applyFilters">Aplicar Filtros</button>
+        <button id="resetFilters">Limpiar Filtros</button>
+        <div id="dateRangeInfo" style="font-size: 0.9em; color: #555; margin-left: 10px;"></div>
+    </div>
+
+    <div id="messageContainer" class="message-container" data-initial-length="{{ messages|length|default(0) }}">
+        {% include 'message_cards_partial.html' %}
     </div>
         <!-- Separate container for the two general buttons -->
     <div class="button-container-general">
-        <button id="loadMoreBtn">Load More</button>
-        <button id="exportRelevantsBtn">Export relevants</button>
+        <button id="loadMoreBtn" onclick="loadMoreMessages()" style="display: inline-block;">Cargar más</button>
+        <button id="exportRelevantsBtn">Exportar relevantes</button>
     </div>
     
     <script>
-        document.addEventListener("DOMContentLoaded", function() {
-            function labelMessage(messageId, label) {
-                fetch('/label', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        message_id: messageId,
-                        label: label
-                    })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        console.log(`Labeled ${messageId} as ${label}`);
-                        const relevantBtn = document.querySelector(`button.relevant-btn[data-message-id="${messageId}"]`);
-                        const notRelevantBtn = document.querySelector(`button.not-relevant-btn[data-message-id="${messageId}"]`);
-                        const payload = {
-                            message_id: messageId,
-                            label: label
-                        };
-                        console.log("Sending payload:", payload);
-                        fetch('/label', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify(payload)
-                        })
+        let offset = 0;
+        const messagesPerLoad = 24;
+        let currentFilters = {}; // Almacenar los filtros actuales
 
-                        if (label === 1) {
-                            relevantBtn.style.backgroundColor = "green";
-                            notRelevantBtn.style.backgroundColor = "";
-                        } else {
-                            relevantBtn.style.backgroundColor = "";
-                            notRelevantBtn.style.backgroundColor = "red";
-                        }
-                    } else {
-                        console.error('Error labeling the message.');
+        function getCurrentFilters() {
+            return {
+                dateStart: document.getElementById("dateStart").value,
+                dateEnd: document.getElementById("dateEnd").value,
+                channel: document.getElementById("channelFilter").value,
+                scoreMin: document.getElementById("scoreMin").value,
+                scoreMax: document.getElementById("scoreMax").value,
+                mediaType: document.getElementById("mediaTypeFilter").value,
+                sortBy: document.getElementById("sortBy").value
+            };
+        }
+
+        function loadMoreMessages() {
+            const filters = getCurrentFilters();
+            const url = `/load_more/${offset}?${new URLSearchParams(filters).toString()}`;
+            
+            fetch(url)
+                .then(response => {
+                    if (response.status === 204) {
+                        document.getElementById('loadMoreBtn').style.display = 'none';
+                        return '';
                     }
+                    return response.text();
+                })
+                .then(html => {
+                    if (html) {
+                        const container = document.getElementById("messageContainer");
+                        container.innerHTML += html;
+                        offset += messagesPerLoad;
+                        
+                        // Re-inicializar widgets de Telegram
+                        if (window.Telegram && window.Telegram.Widgets) {
+                            window.Telegram.Widgets.load();
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error al cargar más mensajes:', error);
+                    alert('Error al cargar más mensajes. Por favor, intenta de nuevo.');
                 });
-                console.log("Labeling messageId:", messageId, "with value:", labelValue);
+        }
+
+        function applyFiltersAndRender(page = 1) {
+            // Obtener referencias a los elementos del DOM
+            const dateStartEl = document.getElementById("dateStart");
+            const dateEndEl = document.getElementById("dateEnd");
+            const channelFilterEl = document.getElementById("channelFilter");
+            const scoreMinEl = document.getElementById("scoreMin");
+            const scoreMaxEl = document.getElementById("scoreMax");
+            const mediaTypeFilterEl = document.getElementById("mediaTypeFilter");
+            const sortByEl = document.getElementById("sortBy");
+            const container = document.getElementById("messageContainer");
+            const loadMoreBtn = document.getElementById("loadMoreBtn");
+
+            // Validar que todos los elementos existan
+            if (!dateStartEl || !dateEndEl || !channelFilterEl || !scoreMinEl || 
+                !scoreMaxEl || !mediaTypeFilterEl || !sortByEl || !container || !loadMoreBtn) {
+                console.error("Error: Algunos elementos no se encontraron en el DOM");
+                alert("Error: Algunos elementos necesarios no se encontraron en la página. Por favor, recarga la página.");
+                return;
             }
 
-            let offset = 48;
+            // Construir objeto de filtros con validación
+            const filters = {
+                dateStart: dateStartEl.value ? new Date(dateStartEl.value).toISOString().split('T')[0] : null,
+                dateEnd: dateEndEl.value ? new Date(dateEndEl.value).toISOString().split('T')[0] : null,
+                channel: channelFilterEl.value || null,
+                scoreMin: scoreMinEl.value ? parseFloat(scoreMinEl.value) : null,
+                scoreMax: scoreMaxEl.value ? parseFloat(scoreMaxEl.value) : null,
+                mediaType: mediaTypeFilterEl.value || null,
+                sortBy: sortByEl.value || 'score',
+                page: page,
+                per_page: 24
+            };
 
+            // Guardar los filtros actuales
+            currentFilters = filters;
+
+            // Validar fechas
+            if (filters.dateStart && filters.dateEnd) {
+                const startDate = new Date(filters.dateStart);
+                const endDate = new Date(filters.dateEnd);
+                if (startDate > endDate) {
+                    alert("La fecha de inicio no puede ser posterior a la fecha de fin");
+                    return;
+                }
+            }
+
+            // Validar scores
+            if (filters.scoreMin !== null && filters.scoreMax !== null && 
+                filters.scoreMin > filters.scoreMax) {
+                alert("El score mínimo no puede ser mayor que el score máximo");
+                return;
+            }
+
+            // Mostrar indicador de carga
+            container.innerHTML = '<div style="text-align: center; padding: 20px;">Cargando mensajes...</div>';
+            loadMoreBtn.style.display = 'none'; // Ocultar el botón mientras se cargan los mensajes
+
+            fetch('/filter_messages', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(filters)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => {
+                        throw new Error(err.error || `HTTP error! status: ${response.status}`);
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    // Renderizar los mensajes usando el parcial
+                    return fetch('/render_partial', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({messages: data.messages})
+                    })
+                    .then(res => {
+                        if (!res.ok) {
+                            throw new Error(`HTTP error! status: ${res.status}`);
+                        }
+                        return res.text();
+                    })
+                    .then(html => {
+                        // Verificar que el contenedor aún existe antes de actualizarlo
+                        const currentContainer = document.getElementById("messageContainer");
+                        if (currentContainer) {
+                            currentContainer.innerHTML = html;
+                            renderMessages('');
+                            
+                            // Actualizar controles de paginación
+                            updatePaginationControls(data.total_messages, page);
+                            
+                            // Resetear el offset para Load More
+                            offset = 0;
+                            
+                            // Mostrar el botón Load More si hay más mensajes
+                            const totalMessages = data.total_messages || 0;
+                            const currentMessages = data.messages.length || 0;
+                            loadMoreBtn.style.display = totalMessages > currentMessages ? 'inline-block' : 'none';
+                        } else {
+                            throw new Error("El contenedor de mensajes no se encontró en la página");
+                        }
+                    });
+                } else {
+                    throw new Error(data.error || 'Error desconocido al aplicar filtros');
+                }
+            })
+            .catch(error => {
+                console.error('Error detallado:', error);
+                const errorContainer = document.getElementById("messageContainer");
+                if (errorContainer) {
+                    errorContainer.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+                }
+                alert(`Error al aplicar filtros: ${error.message}`);
+            });
+        }
+
+        function renderMessages(messagesHtml) {
+            const container = document.getElementById("messageContainer");
+            container.innerHTML += messagesHtml;
+             // Re-inicializar widgets de Telegram si es necesario
+             if (window.Telegram && window.Telegram.Widgets) {
+                 window.Telegram.Widgets.load();
+             } else {
+                 // Si el script no está cargado, cargarlo
+                 const script = document.createElement('script');
+                 script.async = true;
+                 script.src = "https://telegram.org/js/telegram-widget.js?22";
+                 script.onload = () => { if (window.Telegram && window.Telegram.Widgets) window.Telegram.Widgets.load(); };
+                 document.body.appendChild(script);
+             }
+        }
+
+        function updatePaginationControls(totalMessages, currentPage) {
+            const perPage = 24;
+            const totalPages = Math.ceil(totalMessages / perPage);
+            let paginationContainer = document.getElementById('paginationContainer');
+            
+            if (!paginationContainer) {
+                paginationContainer = document.createElement('div');
+                paginationContainer.id = 'paginationContainer';
+                paginationContainer.style.textAlign = 'center';
+                paginationContainer.style.margin = '20px 0';
+                
+                // Insertar antes del contenedor de botones generales
+                const buttonContainer = document.querySelector('.button-container-general');
+                if (buttonContainer && buttonContainer.parentNode) {
+                    buttonContainer.parentNode.insertBefore(paginationContainer, buttonContainer);
+                } else {
+                    console.error("No se pudo encontrar el contenedor de botones generales");
+                    return;
+                }
+            }
+
+            let paginationHTML = '';
+            
+            // Botón anterior
+            if (currentPage > 1) {
+                paginationHTML += `<button onclick="applyFiltersAndRender(${currentPage - 1})" class="pagination-btn">Anterior</button>`;
+            }
+            
+            // Números de página
+            const startPage = Math.max(1, currentPage - 2);
+            const endPage = Math.min(totalPages, currentPage + 2);
+            
+            for (let i = startPage; i <= endPage; i++) {
+                if (i === currentPage) {
+                    paginationHTML += `<button class="pagination-btn active">${i}</button>`;
+                } else {
+                    paginationHTML += `<button onclick="applyFiltersAndRender(${i})" class="pagination-btn">${i}</button>`;
+                }
+            }
+            
+            // Botón siguiente
+            if (currentPage < totalPages) {
+                paginationHTML += `<button onclick="applyFiltersAndRender(${currentPage + 1})" class="pagination-btn">Siguiente</button>`;
+            }
+            
+            paginationContainer.innerHTML = paginationHTML;
+        }
+
+        // Añadir estilos para los botones de paginación
+        const style = document.createElement('style');
+        style.textContent = `
+            .pagination-btn {
+                padding: 8px 12px;
+                margin: 0 4px;
+                border: 1px solid #ddd;
+                background-color: #fff;
+                cursor: pointer;
+                border-radius: 4px;
+            }
+            .pagination-btn:hover {
+                background-color: #f0f0f0;
+            }
+            .pagination-btn.active {
+                background-color: #007bff;
+                color: white;
+                border-color: #007bff;
+            }
+        `;
+        document.head.appendChild(style);
+
+        // Modificar el evento del botón de aplicar filtros
+        document.getElementById("applyFilters").addEventListener("click", function() {
+            applyFiltersAndRender(1); // Siempre empezar en la página 1 al aplicar nuevos filtros
+        });
+
+        // Modificar la función resetFiltersAndLoadInitial
+        function resetFiltersAndLoadInitial() {
+            document.getElementById("dateStart").value = '';
+            document.getElementById("dateEnd").value = '';
+            document.getElementById("channelFilter").value = '';
+            document.getElementById("scoreMin").value = '';
+            document.getElementById("scoreMax").value = '';
+            document.getElementById("mediaTypeFilter").value = '';
+            document.getElementById("sortBy").value = 'score';
+            
+            applyFiltersAndRender(1);
+            document.getElementById('loadMoreBtn').style.display = 'none';
+        }
+
+        document.addEventListener("DOMContentLoaded", function() {
+            // Leer el offset inicial del atributo data-*
+            const container = document.getElementById('messageContainer');
+            initialOffset = parseInt(container.dataset.initialLength || '0', 10);
+            offset = initialOffset;
+
+            // --- Carga inicial de datos para filtros (Canales, Rango de Fechas) ---
+            const minDate = '{{ min_date }}';
+            const maxDate = '{{ max_date }}';
+            const dateStartInput = document.getElementById('dateStart');
+            const dateEndInput = document.getElementById('dateEnd');
+            const dateRangeInfo = document.getElementById('dateRangeInfo');
+
+            if (minDate && maxDate) {
+                dateStartInput.min = minDate;
+                dateStartInput.max = maxDate;
+                dateEndInput.min = minDate;
+                dateEndInput.max = maxDate;
+                 dateRangeInfo.textContent = `Fechas disponibles: ${minDate} a ${maxDate}`;
+            } else {
+                 dateRangeInfo.textContent = "Rango de fechas no disponible.";
+            }
+
+            // --- Event Listeners --- 
+            document.getElementById("applyFilters").addEventListener("click", applyFiltersAndRender);
+            document.getElementById("resetFilters").addEventListener("click", resetFiltersAndLoadInitial);
+
+
+            // Listener para Load More (modificado para usar el parcial)
             document.getElementById("loadMoreBtn").addEventListener("click", function() {
                 fetch(`/load_more/${offset}`)
-                    .then(response => response.text())
-                    .then(data => {
-                        document.getElementById("messageContainer").innerHTML += data;
-                        const script = document.createElement('script');
-                        script.src = "https://telegram.org/js/telegram-widget.js?22";
-                        document.body.appendChild(script);
-                        offset += 24;
-                    });
+                    .then(response => {
+                         if (!response.ok) { // Comprobar si la respuesta es OK (e.g., 200)
+                             if(response.status === 204) { // 204 No Content
+                                 console.log("No hay más mensajes para cargar.");
+                                 document.getElementById('loadMoreBtn').style.display = 'none'; // Ocultar botón
+                                 return ''; // Devuelve string vacío para evitar errores posteriores
+                             } else {
+                                 throw new Error(`Error en la petición: ${response.statusText}`);
+                             }
+                         }
+                         return response.text();
+                     })
+                    .then(htmlFragment => {
+                        if (htmlFragment) {
+                            renderMessages(htmlFragment);
+                            offset += messagesPerLoad;
+                        } else if (document.getElementById('loadMoreBtn').style.display !== 'none') {
+                             // Si no hubo fragmento pero el botón aún era visible, ocultarlo ahora.
+                            document.getElementById('loadMoreBtn').style.display = 'none';
+                        }
+                    })
+                     .catch(error => {
+                         console.error('Error cargando más mensajes:', error);
+                         // Opcional: Mostrar mensaje al usuario
+                     });
             });
 
-            document.body.addEventListener('click', function(event) {
-                let messageId;
-                if (event.target.matches('.relevant-btn')) {
-                    messageId = event.target.dataset.messageId;
-                    labelMessage(messageId, 1);
-                    
-                    // Change the button colors
-                    event.target.style.backgroundColor = "green"; // set the relevant button to green
-                    event.target.nextElementSibling.style.backgroundColor = ""; // reset the not-relevant button to its original color
-                } else if (event.target.matches('.not-relevant-btn')) {
-                    messageId = event.target.dataset.messageId;
-                    labelMessage(messageId, 0);
-                    
-                    // Change the button colors
-                    event.target.style.backgroundColor = "red"; // set the not-relevant button to red
-                    event.target.previousElementSibling.style.backgroundColor = ""; // reset the relevant button to its original color
-                }
-            });
+             // Listener para botones de etiquetado (delegación de eventos)
+             document.getElementById('messageContainer').addEventListener('click', function(event) {
+                 let target = event.target;
+                 let messageId;
+                 let labelValue = -1; // Valor por defecto inválido
 
+                 // Buscar el botón correcto subiendo en el DOM si es necesario
+                 const relevantBtn = target.closest('.relevant-btn');
+                 const notRelevantBtn = target.closest('.not-relevant-btn');
+
+                 if (relevantBtn) {
+                     messageId = relevantBtn.dataset.messageId;
+                     labelValue = 1;
+                 } else if (notRelevantBtn) {
+                     messageId = notRelevantBtn.dataset.messageId;
+                     labelValue = 0;
+                 }
+
+                 if (messageId && labelValue !== -1) {
+                     console.log(`Click en botón: messageId=${messageId}, label=${labelValue}`);
+                     labelMessage(messageId, labelValue); // Llama a la función de etiquetado
+                 }
+             });
+
+
+            // Listener para Exportar Relevantes (sin cambios)
             document.getElementById("exportRelevantsBtn").addEventListener("click", function() {
                 fetch('/export_relevants')
                     .then(response => response.json())
                     .then(data => {
                         if (data.success) {
-                            alert("Relevant messages exported successfully!");
+                            alert(data.message || "Relevant messages exported successfully!");
                         } else {
-                            alert("There was an error exporting the messages.");
+                            alert(data.error || "There was an error exporting the messages.");
                         }
-                    });
+                    })
+                    .catch(error => {
+                         console.error("Error en exportación:", error);
+                         alert("Error de red al intentar exportar.");
+                     });
             });
-        });
 
+            // Función labelMessage (sin cambios significativos, asegurar que actualiza UI)
+            function labelMessage(messageId, label) {
+                 const payload = {
+                     message_id: messageId,
+                     label: label
+                 };
+                 console.log("Enviando payload de etiquetado:", payload);
+
+                 fetch('/label', {
+                     method: 'POST',
+                     headers: {
+                         'Content-Type': 'application/json'
+                     },
+                     body: JSON.stringify(payload)
+                 })
+                 .then(response => response.json())
+                 .then(data => {
+                     if (data.success) {
+                         console.log(`Etiquetado ${messageId} como ${label} exitoso.`);
+                         // Actualizar UI directamente
+                         const relevantBtn = document.querySelector(`.relevant-btn[data-message-id="${messageId}"]`);
+                         const notRelevantBtn = document.querySelector(`.not-relevant-btn[data-message-id="${messageId}"]`);
+
+                         if (relevantBtn && notRelevantBtn) {
+                            if (label === 1) {
+                                relevantBtn.style.backgroundColor = "green";
+                                notRelevantBtn.style.backgroundColor = ""; // Reset color
+                            } else {
+                                relevantBtn.style.backgroundColor = ""; // Reset color
+                                notRelevantBtn.style.backgroundColor = "red";
+                            }
+                         } else {
+                             console.warn("No se encontraron los botones para actualizar la UI después de etiquetar.");
+                         }
+                     } else {
+                         console.error('Error al etiquetar el mensaje:', data.error);
+                         alert("Error al guardar la etiqueta: " + (data.error || 'Error desconocido'));
+                     }
+                 })
+                 .catch(error => {
+                     console.error("Error de red al etiquetar:", error);
+                     alert("Error de red al intentar guardar la etiqueta.");
+                 });
+            }
+
+            // Carga inicial de widgets de Telegram (por si acaso)
+            renderMessages('');
+
+        });
     </script>
 </body>
 </html>
