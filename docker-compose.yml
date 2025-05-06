@@ -1,0 +1,22 @@
+version: '3.9'
+
+services:
+  backend:
+    build:
+      context: .
+    container_name: monitoria-backend
+    ports:
+      - "5001:5001"
+    volumes:
+      - .:/app
+    restart: always
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: monitoria-frontend
+    ports:
+      - "3000:80"
+    stdin_open: true
+    tty: true
+    restart: always
