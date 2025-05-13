@@ -1,16 +1,17 @@
-# Etapa 1: construir la app React
-FROM node:18-alpine AS builder
+# Etapa de construcción
+FROM node:18-alpine as builder
 
-# Establecer variables de entorno
+# Configurar variables de entorno
 ENV NODE_ENV=production
 
+# Establecer directorio de trabajo
 WORKDIR /app
 
-# Copiar archivos de dependencias primero
+# Copiar archivos de dependencias
 COPY package*.json ./
 
 # Instalar dependencias
-RUN npm install && npm cache clean --force
+RUN npm ci
 
 # Copiar el resto del código
 COPY . .
@@ -18,20 +19,17 @@ COPY . .
 # Construir la aplicación
 RUN npm run build
 
-# Etapa 2: servir con Nginx
+# Etapa de producción
 FROM nginx:stable-alpine
 
-# Copiar configuración personalizada de nginx
+# Copiar configuración de nginx
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Copiar los archivos construidos
+# Copiar archivos de construcción
 COPY --from=builder /app/build /usr/share/nginx/html
-
-# Crear usuario no root
-RUN adduser -D -H -u 101 -s /sbin/nologin nginx || true
 
 # Exponer puerto
 EXPOSE 80
 
-# Comando para ejecutar nginx
+# Iniciar nginx
 CMD ["nginx", "-g", "daemon off;"] 
