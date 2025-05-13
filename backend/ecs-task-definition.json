@@ -9,7 +9,7 @@
   "containerDefinitions": [
     {
       "name": "monitoria-backend",
-      "image": "${ECR_REPOSITORY_URI}:latest",
+      "image": "ec2-13-60-67-92.eu-north-1.compute.amazonaws.com/monitoria-backend:latest",
       "portMappings": [
         {
           "containerPort": 5001,
@@ -34,7 +34,7 @@
         "logDriver": "awslogs",
         "options": {
           "awslogs-group": "/ecs/monitoria-backend",
-          "awslogs-region": "us-east-1",
+          "awslogs-region": "eu-north-1",
           "awslogs-stream-prefix": "ecs"
         }
       }
