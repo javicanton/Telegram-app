@@ -19,7 +19,7 @@ services:
       context: ./frontend
     container_name: monitoria-frontend
     ports:
-      - "80:80"
+      - "8080:80"
     stdin_open: true
     tty: true
     restart: always
