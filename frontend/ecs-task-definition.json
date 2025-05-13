@@ -1,5 +1,5 @@
 {
-  "family": "monitoria-backend",
+  "family": "monitoria-frontend",
   "networkMode": "awsvpc",
   "requiresCompatibilities": [
     "FARGATE"
@@ -8,32 +8,28 @@
   "memory": "512",
   "containerDefinitions": [
     {
-      "name": "monitoria-backend",
+      "name": "monitoria-frontend",
       "image": "${ECR_REPOSITORY_URI}:latest",
       "portMappings": [
         {
-          "containerPort": 5001,
+          "containerPort": 80,
           "protocol": "tcp"
         }
       ],
       "environment": [
         {
-          "name": "FLASK_APP",
-          "value": "app.py"
-        },
-        {
-          "name": "FLASK_ENV",
+          "name": "NODE_ENV",
           "value": "production"
         },
         {
-          "name": "JWT_SECRET_KEY",
-          "value": "${JWT_SECRET_KEY}"
+          "name": "REACT_APP_API_URL",
+          "value": "http://backend:5001"
         }
       ],
       "logConfiguration": {
         "logDriver": "awslogs",
         "options": {
-          "awslogs-group": "/ecs/monitoria-backend",
+          "awslogs-group": "/ecs/monitoria-frontend",
           "awslogs-region": "us-east-1",
           "awslogs-stream-prefix": "ecs"
         }
