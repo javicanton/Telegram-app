@@ -10,7 +10,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Instalar dependencias
-RUN npm install
+RUN npm install && npm cache clean --force
 
 # Copiar el resto del código
 COPY . .
