@@ -15,11 +15,12 @@ services:
       - monitoria-network
 
   frontend:
-    build: ./frontend
-    ports:
-      - "80:80"
-    depends_on:
-      - backend
+    build:
+      context: ./frontend
+    container_name: monitoria-frontend
+    stdin_open: true
+    tty: true
+    restart: always
     networks:
       - monitoria-network
 
