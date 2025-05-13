@@ -10,7 +10,16 @@ import json
 MESSAGES_LIMIT = 48
 
 app = Flask(__name__)
-CORS(app)
+
+# Configuración de CORS
+CORS(app, resources={
+    r"/*": {
+        "origins": ["http://app.monitoria.org", "http://localhost:3000"],
+        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization"],
+        "supports_credentials": True
+    }
+})
 
 # Configuración de JWT
 app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', 'tu-clave-secreta-por-defecto')  # Cambiar en producción
