@@ -1,12 +1,38 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, send_file
+from flask_cors import CORS
+from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
+from werkzeug.security import generate_password_hash, check_password_hash
 import pandas as pd
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 import json
 
 MESSAGES_LIMIT = 48
 
 app = Flask(__name__)
+
+# Configuración de CORS
+CORS(app, resources={
+    r"/*": {
+        "origins": ["http://app.monitoria.org", "http://localhost:3000"],
+        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization"],
+        "supports_credentials": True
+    }
+})
+
+# Configuración de JWT
+app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', 'tu-clave-secreta-por-defecto')  # Cambiar en producción
+app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=1)
+jwt = JWTManager(app)
+
+# Base de datos de usuarios (en producción usar una base de datos real)
+users_db = {}
+
+@app.route('/health')
+def health_check():
+    """Endpoint para verificar el estado del servicio."""
+    return jsonify({"status": "healthy"}), 200
 
 def load_data():
     """Carga los datos del archivo JSON y maneja posibles errores."""
@@ -73,6 +99,7 @@ def index():
     return render_template('index.html', messages=messages, channels=channels, min_date=min_date, max_date=max_date)
 
 @app.route('/load_more/<int:offset>', methods=['GET'])
+@jwt_required()
 def load_more(offset=0):
     """Carga más mensajes a partir de un offset dado."""
     try:
@@ -179,6 +206,7 @@ def load_more(offset=0):
         return ('', 204)
 
 @app.route('/label', methods=['POST'])
+@jwt_required()
 def label_message():
     """Etiqueta un mensaje con un valor específico."""
     try:
@@ -271,6 +299,7 @@ def export_relevants():
         return jsonify(success=False, error=f"Error inesperado en el servidor: {str(e)}"), 500
 
 @app.route('/filter_messages', methods=['POST'])
+@jwt_required()
 def filter_messages():
     """Filtra los mensajes según los criterios especificados."""
     try:
@@ -424,6 +453,7 @@ def filter_messages():
 
 # Nueva ruta para renderizar el parcial HTML
 @app.route('/render_partial', methods=['POST'])
+@jwt_required()
 def render_partial():
     """Renderiza el fragmento HTML de los mensajes."""
     try:
@@ -449,6 +479,40 @@ def render_partial():
         print(f"Error en /render_partial: {e}")
         # Devuelve un error HTML o un estado 500
         return "<p>Error rendering messages.</p>", 500
+
+@app.route('/register', methods=['POST'])
+def register():
+    data = request.get_json()
+    username = data.get('username')
+    password = data.get('password')
+    
+    if not username or not password:
+        return jsonify({'error': 'Faltan campos requeridos'}), 400
+        
+    if username in users_db:
+        return jsonify({'error': 'El usuario ya existe'}), 400
+        
+    users_db[username] = {
+        'password': generate_password_hash(password)
+    }
+    
+    return jsonify({'message': 'Usuario registrado exitosamente'}), 201
+
+@app.route('/login', methods=['POST'])
+def login():
+    data = request.get_json()
+    username = data.get('username')
+    password = data.get('password')
+    
+    if not username or not password:
+        return jsonify({'error': 'Faltan campos requeridos'}), 400
+        
+    user = users_db.get(username)
+    if not user or not check_password_hash(user['password'], password):
+        return jsonify({'error': 'Credenciales inválidas'}), 401
+        
+    access_token = create_access_token(identity=username)
+    return jsonify({'access_token': access_token}), 200
 
 if __name__ == '__main__':
     print("Iniciando servidor Flask...")

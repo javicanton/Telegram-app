@@ -2,10 +2,10 @@
 
 # Variables
 ECR_REPOSITORY_NAME="monitoria-backend"
-ECR_REPOSITORY_URI="tu-cuenta.dkr.ecr.us-east-1.amazonaws.com/$ECR_REPOSITORY_NAME"
+ECR_REPOSITORY_URI="ec2-13-60-67-92.eu-north-1.compute.amazonaws.com/$ECR_REPOSITORY_NAME"
 CLUSTER_NAME="monitoria-cluster"
 SERVICE_NAME="monitoria-backend-service"
-REGION="us-east-1"
+REGION="eu-north-1"
 
 # Login a ECR
 echo "Iniciando sesión en ECR..."

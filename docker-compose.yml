@@ -1,22 +1,42 @@
-version: '3.9'
+version: '3.8'
 
 services:
   backend:
-    build:
-      context: .
-    container_name: monitoria-backend
+    build: ./backend
     ports:
       - "5001:5001"
+    environment:
+      - FLASK_APP=app.py
+      - FLASK_ENV=production
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-tu-clave-secreta-por-defecto}
     volumes:
-      - .:/app
-    restart: always
+      - ./telegram_messages.json:/app/telegram_messages.json
+    networks:
+      - monitoria
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
 
   frontend:
-    build:
+    build: ./frontend
       context: ./frontend
-    container_name: monitoria-frontend
+    container_name: frontend
     ports:
-      - "3000:80"
-    stdin_open: true
-    tty: true
-    restart: always
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - monitoria-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+networks:
+  monitoria:
+    driver: bridge
