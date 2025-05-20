@@ -13,6 +13,12 @@ services:
       - ./telegram_messages.json:/app/telegram_messages.json
     networks:
       - monitoria-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
 
   frontend:
     build:
@@ -20,11 +26,16 @@ services:
     container_name: monitoria-frontend
     ports:
       - "8080:80"
-    stdin_open: true
-    tty: true
-    restart: always
+    depends_on:
+      - backend
     networks:
       - monitoria-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
 
 networks:
   monitoria-network:

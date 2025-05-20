@@ -29,6 +29,11 @@ jwt = JWTManager(app)
 # Base de datos de usuarios (en producción usar una base de datos real)
 users_db = {}
 
+@app.route('/health')
+def health_check():
+    """Endpoint para verificar el estado del servicio."""
+    return jsonify({"status": "healthy"}), 200
+
 def load_data():
     """Carga los datos del archivo JSON y maneja posibles errores."""
     try:
