@@ -21,7 +21,7 @@ services:
     restart: unless-stopped
 
   frontend:
-    build: ./frontend
+    build:
       context: ./frontend
     container_name: frontend
     ports:
@@ -29,7 +29,7 @@ services:
     depends_on:
       - backend
     networks:
-      - monitoria-network
+      - monitoria
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:80"]
       interval: 30s

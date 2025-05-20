@@ -1,41 +1,23 @@
-# Etapa de construcción
-FROM node:18-alpine as builder
+# Build stage
+FROM node:16-alpine as build
 
-# Configurar variables de entorno
-ENV NODE_ENV=production
-
-# Establecer directorio de trabajo
 WORKDIR /app
 
-# Copiar archivos de dependencias
 COPY package*.json ./
+RUN npm install
 
-# Instalar dependencias con optimizaciones
-RUN npm install --production --no-optional && \
-    npm cache clean --force && \
-    rm -rf /root/.npm
-
-# Copiar el resto del código
 COPY . .
+RUN npm run build
 
-# Construir la aplicación
-RUN npm run build && \
-    rm -rf node_modules
+# Production stage
+FROM nginx:alpine
 
-# Etapa de producción
-FROM nginx:stable-alpine
+# Copy the build output to replace the default nginx contents.
+COPY --from=build /app/build /usr/share/nginx/html
 
-# Copiar configuración de nginx
+# Copy custom nginx config
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Copiar archivos de construcción
-COPY --from=builder /app/build /usr/share/nginx/html
-
-# Limpiar caché de nginx
-RUN rm -rf /var/cache/nginx/*
-
-# Exponer puerto
 EXPOSE 80
 
-# Iniciar nginx
 CMD ["nginx", "-g", "daemon off;"] 
