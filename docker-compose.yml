@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   backend:
-    build: .
+    build: ./backend
     ports:
       - "5001:5001"
     environment:
@@ -12,7 +12,7 @@ services:
     volumes:
       - ./telegram_messages.json:/app/telegram_messages.json
     networks:
-      - monitoria-network
+      - monitoria
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5001/health"]
       interval: 30s
@@ -21,11 +21,11 @@ services:
     restart: unless-stopped
 
   frontend:
-    build:
+    build: ./frontend
       context: ./frontend
-    container_name: monitoria-frontend
+    container_name: frontend
     ports:
-      - "8080:80"
+      - "80:80"
     depends_on:
       - backend
     networks:
@@ -38,5 +38,5 @@ services:
     restart: unless-stopped
 
 networks:
-  monitoria-network:
+  monitoria:
     driver: bridge
