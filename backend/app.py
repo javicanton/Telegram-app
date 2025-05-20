@@ -6,8 +6,12 @@ import pandas as pd
 import os
 from datetime import datetime, timedelta
 import json
+import boto3
+from botocore.exceptions import ClientError
 
 MESSAGES_LIMIT = 48
+S3_BUCKET = os.environ.get('S3_BUCKET', 'monitoria-data')
+S3_KEY = 'telegram_messages.json'
 
 app = Flask(__name__)
 
@@ -22,9 +26,14 @@ CORS(app, resources={
 })
 
 # Configuración de JWT
-app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', 'tu-clave-secreta-por-defecto')  # Cambiar en producción
+app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', 'tu-clave-secreta-por-defecto')
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=1)
 jwt = JWTManager(app)
+
+# Inicializar cliente S3
+s3_client = boto3.client('s3',
+    region_name=os.environ.get('AWS_REGION', 'eu-north-1')
+)
 
 # Base de datos de usuarios (en producción usar una base de datos real)
 users_db = {}
@@ -35,22 +44,24 @@ def health_check():
     return jsonify({"status": "healthy"}), 200
 
 def load_data():
-    """Carga los datos del archivo JSON y maneja posibles errores."""
+    """Carga los datos del archivo JSON desde S3 y maneja posibles errores."""
     try:
-        json_path = 'telegram_messages.json'
-        if not os.path.exists(json_path):
-            print(f"Advertencia: El archivo {json_path} no existe.")
-            return pd.DataFrame()
-
-        with open(json_path, 'r', encoding='utf-8') as f:
-            data = json.load(f)
+        # Intentar leer desde S3
+        try:
+            response = s3_client.get_object(Bucket=S3_BUCKET, Key=S3_KEY)
+            data = json.loads(response['Body'].read().decode('utf-8'))
+        except ClientError as e:
+            if e.response['Error']['Code'] == 'NoSuchKey':
+                print(f"Advertencia: El archivo {S3_KEY} no existe en S3.")
+                return pd.DataFrame()
+            else:
+                raise
 
         # Convertir los mensajes a DataFrame
         df = pd.DataFrame(data['messages'])
         
         # Verificar y limpiar la columna Title (usada como Channel)
         if 'Title' in df.columns:
-            # Limpiar valores nulos o vacíos
             df['Title'] = df['Title'].fillna('Desconocido')
             df['Title'] = df['Title'].replace('', 'Desconocido')
         
@@ -59,7 +70,6 @@ def load_data():
         for col in date_columns:
             if col in df.columns:
                 try:
-                    # Convertir a datetime y eliminar zona horaria
                     df[col] = pd.to_datetime(df[col]).dt.tz_localize(None)
                 except Exception as e:
                     print(f"Error al convertir la columna '{col}': {e}")
@@ -74,6 +84,24 @@ def load_data():
     except Exception as e:
         print(f"Error crítico al cargar el archivo JSON: {e}")
         return pd.DataFrame()
+
+def save_data(df):
+    """Guarda los datos en S3."""
+    try:
+        # Convertir DataFrame a JSON
+        json_data = json.dumps({'messages': df.to_dict(orient='records')})
+        
+        # Subir a S3
+        s3_client.put_object(
+            Bucket=S3_BUCKET,
+            Key=S3_KEY,
+            Body=json_data.encode('utf-8'),
+            ContentType='application/json'
+        )
+        return True
+    except Exception as e:
+        print(f"Error al guardar en S3: {e}")
+        return False
 
 @app.route('/')
 def index():
@@ -217,11 +245,7 @@ def label_message():
         message_id = int(data['message_id'])
         label = int(data['label'])
 
-        json_path = 'telegram_messages.json'
-        if not os.path.exists(json_path):
-             return jsonify(success=False, error="Archivo de datos no encontrado"), 404
-
-        df = load_data() # Usamos load_data para consistencia, aunque podríamos leer directamente
+        df = load_data()
         if df.empty:
             return jsonify(success=False, error="No hay datos disponibles o error al cargar"), 404
 
@@ -231,33 +255,24 @@ def label_message():
 
         # Verifica si el message_id existe en el DataFrame
         if message_id not in df['Message ID'].values:
-             # Podría ser un mensaje cargado previamente pero no encontrado ahora (raro)
-             print(f"Advertencia: message_id {message_id} no encontrado en el DataFrame para etiquetar.")
-             # Decide si devolver error o éxito silencioso. Devolveremos éxito para no bloquear UI.
-             return jsonify(success=True, message="Message ID no encontrado, pero operación ignorada.")
-             # Opcional: return jsonify(success=False, error=f"Message ID {message_id} no encontrado"), 404
+            print(f"Advertencia: message_id {message_id} no encontrado en el DataFrame para etiquetar.")
+            return jsonify(success=True, message="Message ID no encontrado, pero operación ignorada.")
 
-        # Actualiza el DataFrame (asegúrate que 'Label' exista o créala)
+        # Actualiza el DataFrame
         if 'Label' not in df.columns:
-            df['Label'] = pd.NA # O None, o 0 por defecto si prefieres
+            df['Label'] = pd.NA
 
-        # Usa .loc para actualizar. Asegúrate de manejar el tipo de message_id si es necesario.
         df.loc[df['Message ID'] == message_id, 'Label'] = label
 
-        # Guarda el DataFrame actualizado
-        try:
-            with open(json_path, 'w', encoding='utf-8') as f:
-                json.dump({'messages': df.to_dict(orient='records')}, f)
-        except Exception as e:
-            print(f"Error al guardar el archivo JSON después de etiquetar: {e}")
-            return jsonify(success=False, error=f"Error al guardar cambios: {str(e)}"), 500
+        # Guarda en S3
+        if not save_data(df):
+            return jsonify(success=False, error="Error al guardar cambios en S3"), 500
 
         return jsonify(success=True)
     except ValueError as e:
-        # Error de conversión de message_id o label
         return jsonify(success=False, error=f"Error en los datos de entrada: {str(e)}"), 400
     except Exception as e:
-        print(f"Error inesperado en /label: {e}") # Log del error
+        print(f"Error inesperado en /label: {e}")
         return jsonify(success=False, error=f"Error inesperado en el servidor: {str(e)}"), 500
 
 @app.route('/export_relevants', methods=['GET'])
@@ -513,6 +528,34 @@ def login():
         
     access_token = create_access_token(identity=username)
     return jsonify({'access_token': access_token}), 200
+
+@app.route('/api/messages', methods=['GET'])
+@jwt_required()
+def get_messages():
+    """Endpoint para obtener los mensajes para el frontend."""
+    try:
+        df = load_data()
+        if df.empty:
+            return jsonify(success=True, messages=[])
+
+        # Seleccionar las columnas necesarias
+        required_columns = ['Message ID', 'Message Text', 'Title', 'Views', 'Average Views', 'Label']
+        messages = []
+        
+        for _, row in df.iterrows():
+            msg = {}
+            for col in required_columns:
+                if col in row:
+                    msg[col] = row[col] if pd.notna(row[col]) else None
+                else:
+                    msg[col] = None
+            messages.append(msg)
+
+        return jsonify(success=True, messages=messages)
+
+    except Exception as e:
+        print(f"Error en /api/messages: {e}")
+        return jsonify(success=False, error=str(e)), 500
 
 if __name__ == '__main__':
     print("Iniciando servidor Flask...")

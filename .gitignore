@@ -476,6 +476,19 @@ telegram_messages.csv
 telegram_channels.csv
 telegram_channels_full.csv
 
+# Carpeta de datos
+/data/*
+!/data/telegram_messages.json
+
 # Logs
 *.log
 logs/
+
+# Archivos de datos
+*.json
+*.csv
+*.xlsx
+backend/data/*.json
+backend/data/*.csv
+backend/data/*.xlsx
+backend/data/*.session
