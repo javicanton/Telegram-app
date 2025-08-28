@@ -1,19 +1,111 @@
 from flask import Flask, render_template, request, jsonify
+from flask_jwt_extended import JWTManager
+from flask_sqlalchemy import SQLAlchemy
+from flask_cors import CORS
 import pandas as pd
 import os
 from datetime import datetime
 import json
+from backend.s3_client import get_s3_client
+from backend.auth import auth_bp
+from backend.models import db
+from backend.config import Config
+import logging
+
+# Configurar logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 MESSAGES_LIMIT = 48
 
 app = Flask(__name__)
+app.config.from_object(Config)
+
+# Inicializar extensiones
+jwt = JWTManager(app)
+CORS(app)
+db.init_app(app)
+
+# Registrar blueprints
+app.register_blueprint(auth_bp, url_prefix='/api/auth')
+
+# Crear tablas de base de datos
+with app.app_context():
+    db.create_all()
 
 def load_data():
-    """Carga los datos del archivo JSON y maneja posibles errores."""
+    """Carga los datos desde S3 y maneja posibles errores."""
+    try:
+        # Intentar cargar desde S3
+        s3_client = get_s3_client()
+        
+        # Verificar conexión con S3
+        if not s3_client.check_connection():
+            logger.warning("No se pudo conectar con S3, intentando cargar desde archivo local")
+            return load_data_local()
+        
+        # Listar archivos disponibles en S3
+        files = s3_client.list_files()
+        logger.info(f"Archivos disponibles en S3: {files}")
+        
+        # Buscar archivo de mensajes (prioridad: JSON, luego CSV)
+        messages_file = None
+        for file in files:
+            if 'telegram_messages' in file.lower():
+                if file.endswith('.json'):
+                    messages_file = file
+                    break
+                elif file.endswith('.csv') and not messages_file:
+                    messages_file = file
+        
+        if not messages_file:
+            logger.warning("No se encontró archivo de mensajes en S3, intentando archivo local")
+            return load_data_local()
+        
+        logger.info(f"Cargando datos desde S3: {messages_file}")
+        
+        # Cargar datos según el formato del archivo
+        if messages_file.endswith('.json'):
+            data = s3_client.load_json_from_s3(messages_file)
+            df = pd.DataFrame(data['messages'])
+        elif messages_file.endswith('.csv'):
+            df = s3_client.load_csv_from_s3(messages_file)
+        else:
+            logger.error(f"Formato de archivo no soportado: {messages_file}")
+            return load_data_local()
+        
+        # Verificar y limpiar la columna Title (usada como Channel)
+        if 'Title' in df.columns:
+            # Limpiar valores nulos o vacíos
+            df['Title'] = df['Title'].fillna('Desconocido')
+            df['Title'] = df['Title'].replace('', 'Desconocido')
+        
+        # Convertir columnas de fecha si existen
+        date_columns = ['Date', 'Date Sent', 'Creation Date', 'Edit Date']
+        for col in date_columns:
+            if col in df.columns:
+                try:
+                    # Convertir a datetime y eliminar zona horaria
+                    df[col] = pd.to_datetime(df[col]).dt.tz_localize(None)
+                except Exception as e:
+                    logger.warning(f"Error al convertir la columna '{col}': {e}")
+                    if col in df.columns:
+                        del df[col]
+        
+        logger.info(f"Datos cargados desde S3 exitosamente: {len(df)} mensajes")
+        return df
+
+    except Exception as e:
+        logger.error(f"Error al cargar datos desde S3: {e}")
+        logger.info("Intentando cargar desde archivo local como fallback")
+        return load_data_local()
+
+def load_data_local():
+    """Carga los datos del archivo JSON local como fallback."""
     try:
         json_path = 'telegram_messages.json'
         if not os.path.exists(json_path):
-            print(f"Advertencia: El archivo {json_path} no existe.")
+            logger.warning(f"El archivo {json_path} no existe.")
             return pd.DataFrame()
 
         with open(json_path, 'r', encoding='utf-8') as f:
@@ -36,17 +128,18 @@ def load_data():
                     # Convertir a datetime y eliminar zona horaria
                     df[col] = pd.to_datetime(df[col]).dt.tz_localize(None)
                 except Exception as e:
-                    print(f"Error al convertir la columna '{col}': {e}")
+                    logger.warning(f"Error al convertir la columna '{col}': {e}")
                     if col in df.columns:
                         del df[col]
         
+        logger.info(f"Datos cargados desde archivo local: {len(df)} mensajes")
         return df
 
     except json.JSONDecodeError as e:
-        print(f"Error al decodificar el archivo JSON: {e}")
+        logger.error(f"Error al decodificar el archivo JSON: {e}")
         return pd.DataFrame()
     except Exception as e:
-        print(f"Error crítico al cargar el archivo JSON: {e}")
+        logger.error(f"Error crítico al cargar el archivo JSON: {e}")
         return pd.DataFrame()
 
 @app.route('/')
@@ -216,12 +309,39 @@ def label_message():
         # Usa .loc para actualizar. Asegúrate de manejar el tipo de message_id si es necesario.
         df.loc[df['Message ID'] == message_id, 'Label'] = label
 
-        # Guarda el DataFrame actualizado
+        # Guarda el DataFrame actualizado tanto localmente como en S3
         try:
+            # Guardar localmente como fallback
             with open(json_path, 'w', encoding='utf-8') as f:
                 json.dump({'messages': df.to_dict(orient='records')}, f)
+            
+            # Intentar guardar en S3
+            try:
+                s3_client = get_s3_client()
+                if s3_client.check_connection():
+                    # Buscar el archivo original en S3
+                    files = s3_client.list_files()
+                    messages_file = None
+                    for file in files:
+                        if 'telegram_messages' in file.lower() and file.endswith('.json'):
+                            messages_file = file
+                            break
+                    
+                    if messages_file:
+                        # Subir el archivo actualizado a S3
+                        s3_client.upload_dataframe(df, messages_file, format='json')
+                        logger.info(f"Cambios guardados en S3: {messages_file}")
+                    else:
+                        # Si no existe, crear uno nuevo
+                        s3_client.upload_dataframe(df, 'telegram_messages.json', format='json')
+                        logger.info("Nuevo archivo de mensajes creado en S3")
+                else:
+                    logger.warning("No se pudo conectar con S3, solo se guardó localmente")
+            except Exception as s3_error:
+                logger.warning(f"Error al guardar en S3: {s3_error}, solo se guardó localmente")
+                
         except Exception as e:
-            print(f"Error al guardar el archivo JSON después de etiquetar: {e}")
+            logger.error(f"Error al guardar el archivo JSON después de etiquetar: {e}")
             return jsonify(success=False, error=f"Error al guardar cambios: {str(e)}"), 500
 
         return jsonify(success=True)
@@ -256,14 +376,29 @@ def export_relevants():
         if relevant_df.empty:
             return jsonify(success=True, message="No hay mensajes etiquetados como relevantes para exportar."), 200 # O 404 si prefieres error
 
-        # Guarda en un nuevo CSV
+        # Guarda en un nuevo CSV tanto localmente como en S3
         export_path = 'telegram_messages_relevant.csv'
         try:
+            # Guardar localmente
             relevant_df.to_csv(export_path, index=False, encoding='utf-8')
-            print(f"Mensajes relevantes exportados a {export_path}")
-            return jsonify(success=True, message=f"Exportado a {export_path}")
+            logger.info(f"Mensajes relevantes exportados localmente a {export_path}")
+            
+            # Intentar guardar en S3
+            try:
+                s3_client = get_s3_client()
+                if s3_client.check_connection():
+                    s3_client.upload_dataframe(relevant_df, 'telegram_messages_relevant.csv', format='csv')
+                    logger.info("Mensajes relevantes exportados a S3")
+                    return jsonify(success=True, message=f"Exportado localmente y a S3")
+                else:
+                    logger.warning("No se pudo conectar con S3, solo se exportó localmente")
+                    return jsonify(success=True, message=f"Exportado localmente a {export_path}")
+            except Exception as s3_error:
+                logger.warning(f"Error al exportar a S3: {s3_error}, solo se exportó localmente")
+                return jsonify(success=True, message=f"Exportado localmente a {export_path}")
+                
         except Exception as e:
-            print(f"Error al guardar el archivo CSV de relevantes: {e}")
+            logger.error(f"Error al guardar el archivo CSV de relevantes: {e}")
             return jsonify(success=False, error=f"Error al guardar el archivo exportado: {str(e)}"), 500
 
     except Exception as e:

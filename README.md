@@ -1,396 +1,231 @@
-# Telegram Message Scraper
+# Telegram Analytics App
 
-Este script permite extraer y analizar mensajes de canales de Telegram.
+Aplicación web para analizar y etiquetar mensajes de alto rendimiento en canales de Telegram, con integración completa con AWS S3.
 
-## Requisitos Previos
+## 🚀 Características
 
-- Python 3.7 o superior
-- pip (gestor de paquetes de Python)
+- **Conexión automática con AWS S3**: Los datos se cargan automáticamente desde el bucket configurado
+- **Sincronización en tiempo real**: Los cambios se guardan tanto localmente como en la nube
+- **Sistema de filtros avanzado**: Filtra por fecha, canal, puntuación y tipo de contenido
+- **Etiquetado de mensajes**: Marca mensajes como relevantes o no relevantes
+- **Exportación de datos**: Exporta mensajes etiquetados como relevantes
+- **Interfaz moderna**: Diseño responsive con Material-UI
+- **Autenticación de usuarios**: Sistema de login y registro completo
 
-## Instalación
+## 🏗️ Arquitectura
 
-1. Clona este repositorio:
+- **Backend**: Flask (Python) con cliente S3 integrado y autenticación JWT
+- **Frontend**: React con Material-UI y contexto de autenticación
+- **Almacenamiento**: AWS S3 + archivos locales como fallback
+- **Base de datos**: PostgreSQL para autenticación de usuarios
+- **Autenticación**: JWT tokens con verificación de email
 
-```bash
-git clone [URL_DEL_REPOSITORIO]
-cd [NOMBRE_DEL_DIRECTORIO]
-```
+## 📋 Requisitos Previos
 
-2. El script intentará instalar automáticamente las dependencias necesarias. Si encuentras algún error, sigue estas instrucciones:
+- Python 3.8+
+- Node.js 16+
+- PostgreSQL (para autenticación)
+- Cuenta de AWS con acceso a S3
+- Bucket S3 configurado con los datos de Telegram
 
-### Solución de Problemas de Instalación
+## 🔧 Instalación
 
-#### Error: "ModuleNotFoundError: No module named 'X'"
-
-Si recibes este error para cualquier módulo (pandas, telethon, etc.), intenta los siguientes pasos:
-
-1. Actualiza pip:
-
-```bash
-python -m pip install --upgrade pip
-```
-
-2. Instala las dependencias manualmente:
-
-```bash
-pip install pandas telethon openpyxl python-dotenv asyncio
-```
-
-3. Si el comando anterior falla, intenta con:
+### 1. Clonar el repositorio
 
 ```bash
-python -m pip install pandas telethon openpyxl python-dotenv asyncio
+git clone <url-del-repositorio>
+cd Telegram-app
 ```
 
-4. Si sigues teniendo problemas, intenta instalar cada paquete individualmente:
+### 2. Configurar el backend
 
 ```bash
-pip install pandas
-pip install telethon
-pip install openpyxl
-pip install python-dotenv
-pip install asyncio
+# Instalar dependencias de Python
+pip install -r requirements.txt
 ```
 
-#### Problemas Específicos por Sistema Operativo
+### 3. Configurar variables de entorno
 
-##### Windows
-
-- Asegúrate de que Python esté en tu PATH
-- Ejecuta los comandos pip desde el símbolo del sistema como administrador
-
-##### macOS/Linux
-
-- Usa `python3` en lugar de `python` si tienes múltiples versiones instaladas
-- Si usas virtualenv, asegúrate de activarlo antes de instalar las dependencias
-
-## Uso
-
-1. Ejecuta el script:
+Crear un archivo `.env` en la raíz del proyecto:
 
 ```bash
-python scraper.py
+# Configuración de Flask
+SECRET_KEY=tu_secret_key_aqui_cambiar_en_produccion
+JWT_SECRET_KEY=tu_jwt_secret_key_aqui_cambiar_en_produccion
+
+# Configuración de AWS S3
+AWS_ACCESS_KEY_ID=tu_access_key_id
+AWS_SECRET_ACCESS_KEY=tu_secret_access_key
+AWS_REGION=eu-north-1
+S3_BUCKET=monitoria-data
+
+# Configuración de base de datos PostgreSQL
+DB_USER=admin
+DB_PASSWORD=tu_password_db
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=telegram_app
+
+# Configuración de correo electrónico (AWS SES)
+MAIL_DEFAULT_SENDER=tu_email@ejemplo.com
+AWS_SES_ACCESS_KEY=tu_ses_access_key
+AWS_SES_SECRET_KEY=tu_ses_secret_key
+
+# Configuración de CORS
+CORS_ORIGINS=http://localhost:3000,http://app.monitoria.org
+
+# Usuario administrador por defecto (opcional)
+ADMIN_EMAIL=admin@monitoria.org
+ADMIN_PASSWORD=admin123
+ADMIN_NAME=Administrador
 ```
 
-2. Sigue las instrucciones en pantalla para:
-   - Proporcionar tus credenciales de Telegram API
-   - Especificar los canales a scrapear
-   - Configurar los parámetros de extracción
-
-## Solución de Problemas Comunes
-
-### Error de Conexión con Telegram
-
-- Verifica tu conexión a internet
-- Asegúrate de que las credenciales de API sean correctas
-- Intenta ejecutar el script nuevamente
-
-### Errores de Memoria
-
-- Reduce el número de mensajes a extraer
-- Aumenta el intervalo entre solicitudes
-
-### Problemas con el Archivo CSV
-
-- Asegúrate de tener permisos de escritura en el directorio
-- Cierra cualquier programa que esté usando el archivo CSV
-
-## Soporte
-
-Si encuentras algún problema no cubierto en esta documentación, por favor:
-
-1. Revisa los mensajes de error detallados
-2. Intenta las soluciones mencionadas arriba
-3. Si el problema persiste, abre un issue en el repositorio
-
-# Telegram-app
-
-**Description:**  
-Telegram-app is a fact-checking tool designed to track and analyze high-performing messages on Telegram channels. The tool collects message data, calculates engagement metrics, and exports the results in both CSV and Excel formats for further analysis.
-
-**Key features:**
-
-1. **Message Collection:** Extracts messages from specified Telegram channels with configurable time range and message limits.
-2. **Engagement Metrics:** Calculates message views, average views per day, and engagement scores.
-3. **Data Processing:** Processes messages and their metadata, including forwarded messages, replies, and media content.
-4. **Export Formats:** Generates both CSV and Excel outputs for flexible data analysis.
-5. **Progress Tracking:** Shows real-time progress of channel extraction with detailed status messages.
-
-## Installation
-
-1. Clone this repository
-2. Install dependencies:
-
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-## Configuration
-
-Before running the application, you need to configure:
-
-1. **Telegram API Credentials:**  
-   You need to configure your Telegram API credentials. There are two ways to do this:
-
-   a) **Using Environment Variables (Recommended):**
-
-   ```bash
-   # Add these to your ~/.zshrc (macOS/Linux with zsh) or ~/.bashrc (Linux with bash)
-   export TELEGRAM_API_ID="your_api_id"
-   export TELEGRAM_API_HASH="your_api_hash"
-   ```
-
-   b) **Using credentials.txt:**
-   - Create a `credentials.txt` file based on `credentials.example.txt`
-   - Add your API credentials in the following format:
-
-   ```
-   API_ID=your_api_id
-   API_HASH=your_api_hash
-   ```
-
-   To obtain your API credentials:
-   1. Visit <https://my.telegram.org/auth>
-   2. Log in with your phone number
-   3. Go to "API development tools"
-   4. Create a new application
-   5. Copy your `api_id` (a number) and `api_hash` (a string)
-
-2. **telegram_channels.csv:**  
-   This file contains the list of Telegram channels you want to monitor. To set it up:
-
-   1. Create a `telegram_channels.csv` file based on `telegram_channels.example.csv`
-   2. Add one channel username per line (without the @ symbol)
-   3. For example, if you want to monitor <https://t.me/example>, add just "example"
-
-## Usage
-
-Run the script with:
+### 4. Inicializar la base de datos
 
 ```bash
-python scraper.py
+# Crear tablas y usuario administrador
+python init_db.py
 ```
 
-You will be prompted to enter:
-
-- Number of days to scrape (default: 7)
-- Maximum messages per channel to collect (default: 500)
-
-The script will show progress for each channel:
-
-- ✓ Success messages showing the number of messages processed
-- ✗ Error messages for invalid or inaccessible channels
-
-## Output Files
-
-The script generates two output files:
-
-1. **telegram_messages.csv:**
-   - Contains all collected messages and their metadata
-   - Includes engagement metrics and scores
-   - Useful for data analysis and processing
-
-2. **telegram_data.xlsx:**
-   - Excel version of the data
-   - Same information as the CSV but in Excel format
-   - Better for visual inspection and quick analysis
-
-## Métricas y Puntuaciones
-
-### Score de Engagement
-
-El score de cada mensaje se calcula como la proporción entre el número de views del mensaje y la media de views del día:
-
-```
-Score = Views del mensaje / Media de views del día
-```
-
-Este score tiene las siguientes características:
-
-- Un score de 1.0 significa que el mensaje tiene exactamente la media de views del día
-- Un score de 2.0 significa que tiene el doble de views que la media
-- Un score de 0.5 significa que tiene la mitad de views que la media
-- El score puede ser mayor que 1 (no tiene límite superior)
-- El score mínimo es 0 (cuando no hay views o la media es 0)
-
-Esta métrica ayuda a identificar:
-
-- Mensajes que están "sobreperforming" (score > 1)
-- Mensajes que están "underperforming" (score < 1)
-- Tendencias de engagement a lo largo del tiempo
-
-## Privacy and Security
-
-The following files are ignored by git to protect sensitive information:
-
-1. **Credentials and Environment:**
-   - `credentials.txt` - Contains your Telegram API credentials
-   - `.env` - Environment variables file
-   - `telegram_channels.csv` - Your private list of monitored channels
-
-2. **Session Files:**
-   - `anon.session` - Telegram session file
-   - `*.session` - Any other session files
-   - `*.session-journal` - Session journal files
-
-3. **Generated Data:**
-   - `telegram_messages.csv` - Collected message data
-   - `telegram_data.xlsx` - Excel export of collected data
-
-## License
-
-This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) file for details.
-
-## Contact
-
-If you have questions, comments, or suggestions, please feel free to get in touch:
-
-- **Twitter:** [@ProsumidorSoc](https://twitter.com/ProsumidorSoc)
-- **Email:** [javicanton@ugr.es](mailto:javicanton@ugr.es)
-
----
-
-# Telegram-app
-
-**Descripción:**  
-Telegram-app es una herramienta de verificación de hechos diseñada para rastrear y analizar mensajes de alto rendimiento en canales de Telegram. La herramienta recopila datos de mensajes, calcula métricas de engagement y exporta los resultados en formatos CSV y Excel para su posterior análisis.
-
-**Características principales:**
-
-1. **Recopilación de Mensajes:** Extrae mensajes de canales específicos de Telegram con rango de tiempo y límites de mensajes configurables.
-2. **Métricas de Engagement:** Calcula vistas de mensajes, promedio de vistas por día y puntuaciones de engagement.
-3. **Procesamiento de Datos:** Procesa mensajes y sus metadatos, incluyendo mensajes reenviados, respuestas y contenido multimedia.
-4. **Formatos de Exportación:** Genera salidas en CSV y Excel para un análisis flexible de datos.
-5. **Seguimiento de Progreso:** Muestra el progreso en tiempo real de la extracción de canales con mensajes de estado detallados.
-
-## Instalación
-
-1. Clona este repositorio
-2. Instala las dependencias:
-
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-## Configuración
-
-Antes de ejecutar la aplicación, necesitas configurar:
-
-1. **Credenciales de la API de Telegram:**  
-   Necesitas configurar tus credenciales de la API de Telegram. Hay dos formas de hacerlo:
-
-   a) **Usando Variables de Entorno (Recomendado):**
-
-   ```bash
-   # Añade esto a tu ~/.zshrc (macOS/Linux con zsh) o ~/.bashrc (Linux con bash)
-   export TELEGRAM_API_ID="tu_api_id"
-   export TELEGRAM_API_HASH="tu_api_hash"
-   ```
-
-   b) **Usando credentials.txt:**
-   - Crea un archivo `credentials.txt` basado en `credentials.example.txt`
-   - Añade tus credenciales de API en el siguiente formato:
-
-   ```
-   API_ID=tu_api_id
-   API_HASH=tu_api_hash
-   ```
-
-   Para obtener tus credenciales de API:
-   1. Visita <https://my.telegram.org/auth>
-   2. Inicia sesión con tu número de teléfono
-   3. Ve a "API development tools"
-   4. Crea una nueva aplicación
-   5. Copia tu `api_id` (un número) y `api_hash` (una cadena de texto)
-
-2. **telegram_channels.csv:**  
-   Este archivo contiene la lista de canales de Telegram que deseas monitorizar. Para configurarlo:
-
-   1. Crea un archivo `telegram_channels.csv` basado en `telegram_channels.example.csv`
-   2. Añade un nombre de usuario de canal por línea (sin el símbolo @)
-   3. Por ejemplo, si quieres monitorizar <https://t.me/ejemplo>, añade solo "ejemplo"
-
-## Uso
-
-Ejecuta el script con:
+### 5. Configurar el frontend
 
 ```bash
-python scraper.py
+cd frontend
+npm install
 ```
 
-Se te pedirá que ingreses:
+Crear un archivo `.env` en el directorio `frontend`:
 
-- Número de días a rastrear (por defecto: 7)
-- Máximo de mensajes por canal a recolectar (por defecto: 500)
-
-El script mostrará el progreso para cada canal:
-
-- ✓ Mensajes de éxito mostrando el número de mensajes procesados
-- ✗ Mensajes de error para canales inválidos o inaccesibles
-
-## Archivos de Salida
-
-El script genera dos archivos de salida:
-
-1. **telegram_messages.csv:**
-   - Contiene todos los mensajes recopilados y sus metadatos
-   - Incluye métricas de engagement y puntuaciones
-   - Útil para análisis y procesamiento de datos
-
-2. **telegram_data.xlsx:**
-   - Versión Excel de los datos
-   - Misma información que el CSV pero en formato Excel
-   - Mejor para inspección visual y análisis rápido
-
-## Métricas y Puntuaciones
-
-### Score de Engagement
-
-El score de cada mensaje se calcula como la proporción entre el número de views del mensaje y la media de views del día:
-
-```
-Score = Views del mensaje / Media de views del día
+```bash
+REACT_APP_API_URL=http://localhost:5001
+REACT_APP_S3_BUCKET=monitoria-data
+REACT_APP_AWS_REGION=eu-north-1
 ```
 
-Este score tiene las siguientes características:
+## 🚀 Ejecución
 
-- Un score de 1.0 significa que el mensaje tiene exactamente la media de views del día
-- Un score de 2.0 significa que tiene el doble de views que la media
-- Un score de 0.5 significa que tiene la mitad de views que la media
-- El score puede ser mayor que 1 (no tiene límite superior)
-- El score mínimo es 0 (cuando no hay views o la media es 0)
+### 1. Iniciar el backend
 
-Esta métrica ayuda a identificar:
+```bash
+# Desde la raíz del proyecto
+python app.py
+```
 
-- Mensajes que están "sobreperforming" (score > 1)
-- Mensajes que están "underperforming" (score < 1)
-- Tendencias de engagement a lo largo del tiempo
+El servidor se ejecutará en `http://localhost:5001`
 
-## Privacidad y Seguridad
+### 2. Iniciar el frontend
 
-Los siguientes archivos son ignorados por git para proteger la información sensible:
+```bash
+cd frontend
+npm start
+```
 
-1. **Credenciales y Entorno:**
-   - `credentials.txt` - Contiene tus credenciales de API de Telegram
-   - `.env` - Archivo de variables de entorno
-   - `telegram_channels.csv` - Tu lista privada de canales monitorizados
+La aplicación se abrirá en `http://localhost:3000`
 
-2. **Archivos de Sesión:**
-   - `anon.session` - Archivo de sesión de Telegram
-   - `*.session` - Cualquier otro archivo de sesión
-   - `*.session-journal` - Archivos journal de sesión
+## 🔐 Autenticación
 
-3. **Datos Generados:**
-   - `telegram_messages.csv` - Datos de mensajes recopilados
-   - `telegram_data.xlsx` - Exportación Excel de datos recopilados
+### Usuario por defecto
+- **Email**: admin@monitoria.org
+- **Contraseña**: admin123
+- **Rol**: Administrador
 
-## Licencia
+⚠️ **IMPORTANTE**: Cambia la contraseña del administrador después del primer login.
 
-Este proyecto está licenciado bajo la **Licencia MIT**. Consulta el archivo [LICENSE](LICENSE) para más detalles.
+### Endpoints de autenticación
+- `POST /api/auth/register` - Registro de usuarios
+- `POST /api/auth/login` - Login de usuarios
+- `GET /api/auth/me` - Obtener usuario actual (requiere token)
+- `POST /api/auth/forgot-password` - Recuperar contraseña
+- `POST /api/auth/reset-password/<token>` - Restablecer contraseña
 
-## Contacto
+## 🧪 Pruebas
 
-Si tienes preguntas, comentarios o sugerencias, no dudes en ponerte en contacto:
+### Probar conexión con S3
+```bash
+python test_s3_connection.py
+```
 
-- **Twitter:** [@ProsumidorSoc](https://twitter.com/ProsumidorSoc)
-- **Correo Electrónico:** [javicanton@ugr.es](mailto:javicanton@ugr.es)
+### Probar autenticación
+```bash
+# Usar el usuario administrador por defecto
+curl -X POST http://localhost:5001/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"admin@monitoria.org","password":"admin123"}'
+```
+
+## 📊 Estructura de Datos en S3
+
+La aplicación espera los siguientes archivos en tu bucket S3:
+
+- `telegram_messages.json` - Archivo principal con los mensajes
+- `telegram_channels.csv` - Información de canales (opcional)
+- `telegram_messages_relevant.csv` - Mensajes etiquetados como relevantes (se crea automáticamente)
+
+### Formato del archivo JSON de mensajes:
+
+```json
+{
+  "messages": [
+    {
+      "Message ID": 12345,
+      "Title": "Nombre del Canal",
+      "Date": "2024-01-01T10:00:00",
+      "Date Sent": "2024-01-01T10:00:00",
+      "Score": 8.5,
+      "URL": "https://t.me/channel/123",
+      "Embed": "Contenido del mensaje...",
+      "Media Type": "text",
+      "Views": 1000,
+      "Label": null
+    }
+  ]
+}
+```
+
+## 🔧 Solución de Problemas
+
+### Error de conexión S3
+
+- Verifica que las credenciales de AWS estén configuradas correctamente
+- Asegúrate de que el bucket exista y sea accesible
+- Verifica que la región sea correcta
+
+### Datos no se cargan
+
+- Revisa los logs del backend para errores específicos
+- Verifica que los archivos en S3 tengan el formato correcto
+- Comprueba que los nombres de archivo coincidan con lo esperado
+
+### Frontend no se conecta
+
+- Verifica que el backend esté ejecutándose en el puerto correcto
+- Comprueba la configuración de CORS
+- Revisa la consola del navegador para errores de red
+
+## 🤝 Contribución
+
+1. Fork el proyecto
+2. Crea una rama para tu feature (`git checkout -b feature/AmazingFeature`)
+3. Commit tus cambios (`git commit -m 'Add some AmazingFeature'`)
+4. Push a la rama (`git push origin feature/AmazingFeature`)
+5. Abre un Pull Request
+
+## 📄 Licencia
+
+Este proyecto está bajo la Licencia MIT - ver el archivo [LICENSE](LICENSE) para más detalles.
+
+## 📞 Soporte
+
+Si tienes problemas o preguntas:
+
+1. Revisa la documentación
+2. Busca en los issues existentes
+3. Crea un nuevo issue con detalles del problema
+
+## 🔄 Actualizaciones
+
+La aplicación se actualiza automáticamente desde S3. Para forzar una actualización:
+
+1. Usa el botón "Actualizar" en la interfaz
+2. Reinicia el backend
+3. Refresca la página del frontend
