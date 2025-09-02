@@ -349,20 +349,37 @@ def register_noauth_routes(app):
 
             print(f"Columnas disponibles en JSON: {list(df.columns)}")
             
-            # Seleccionar las columnas necesarias para el frontend
-            required_columns = ['Message ID', 'Message Text', 'Title', 'Views', 'Average Views', 'Label', 'Score', 'URL', 'Embed']
+            # Mapear las columnas del JSON a lo que espera el frontend
             messages = []
             
             for _, row in df.iterrows():
                 msg = {}
-                for col in required_columns:
-                    if col in row:
-                        msg[col] = row[col] if pd.notna(row[col]) else None
-                    else:
-                        msg[col] = None
+                # Mapear a los nombres que espera MessageCard.js
+                msg['Message_ID'] = row.get('Message ID', '')
+                msg['Message_Text'] = row.get('Message Text', '')
+                msg['Title'] = row.get('Title', '')
+                msg['Views'] = row.get('Views', 0)
+                msg['Average_Views'] = row.get('Average Views', 0)
+                msg['Label'] = row.get('Label', None)
+                msg['Score'] = row.get('Score', 0)
+                
+                # Construir URL y Embed como en el scraper original
+                channel_title = row.get('Title', '')
+                message_id = row.get('Message ID', '')
+                
+                if channel_title and message_id:
+                    # Usar el título del canal como username (convertir a formato válido)
+                    channel_username = channel_title.lower().replace(' ', '_').replace('.', '').replace(',', '')
+                    msg['URL'] = f"https://t.me/s/{channel_username}/{message_id}"
+                    msg['Embed'] = f'<script async src="https://telegram.org/js/telegram-widget.js?22" data-telegram-post="{channel_username}/{message_id}" data-width="100%"></script>'
+                else:
+                    msg['URL'] = '#'
+                    msg['Embed'] = f"<p>{row.get('Message Text', 'No hay contenido disponible')}</p>"
+                
                 messages.append(msg)
 
             print(f"Total mensajes procesados: {len(messages)}")
+            print(f"Ejemplo de mensaje: {messages[0] if messages else 'No hay mensajes'}")
             return jsonify(success=True, messages=messages)
 
         except Exception as e:
