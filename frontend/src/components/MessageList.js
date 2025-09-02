@@ -24,6 +24,8 @@ const MessageList = ({ filters }) => {
       const useNoAuth = !localStorage.getItem('access_token');
       const endpoint = useNoAuth ? '/noauth/api/messages' : '/api/messages';
       
+      console.log('Fetching messages from:', endpoint, 'useNoAuth:', useNoAuth);
+      
       const headers = {};
       if (!useNoAuth) {
         const token = localStorage.getItem('access_token');
@@ -37,11 +39,17 @@ const MessageList = ({ filters }) => {
         headers
       });
 
+      console.log('Response status:', response.status);
+
       if (!response.ok) {
-        throw new Error('Error al cargar los mensajes');
+        const errorText = await response.text();
+        console.error('Error response:', errorText);
+        throw new Error(`Error al cargar los mensajes: ${response.status} - ${errorText}`);
       }
 
       const data = await response.json();
+      console.log('Response data:', data);
+      
       if (data.success) {
         setMessages(data.messages);
       } else {
@@ -49,6 +57,7 @@ const MessageList = ({ filters }) => {
       }
       setLoading(false);
     } catch (err) {
+      console.error('Error in fetchMessages:', err);
       setError(err.message);
       setLoading(false);
     }

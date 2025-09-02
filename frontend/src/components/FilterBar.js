@@ -27,8 +27,14 @@ function FilterBar({ onFilterChange }) {
         const useNoAuth = !localStorage.getItem('access_token');
         const endpoint = useNoAuth ? '/noauth/api/channels' : '/api/channels';
         
+        console.log('Fetching channels from:', endpoint, 'useNoAuth:', useNoAuth);
+        
         const response = await axios.get(endpoint);
-        setChannels(response.data);
+        console.log('Channels response:', response.data);
+        
+        // Asegurar que response.data es un array
+        const channels = Array.isArray(response.data) ? response.data : [];
+        setChannels(channels);
       } catch (error) {
         console.error('Error fetching channels:', error);
       }
