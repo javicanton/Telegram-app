@@ -49,9 +49,12 @@ const MessageList = ({ filters }) => {
 
       const data = await response.json();
       console.log('Response data:', data);
+      console.log('Messages array:', data.messages);
+      console.log('Messages length:', data.messages ? data.messages.length : 'undefined');
       
       if (data.success) {
         setMessages(data.messages);
+        console.log('Messages set in state:', data.messages);
       } else {
         throw new Error(data.error || 'Error al cargar los mensajes');
       }

@@ -59,26 +59,8 @@ def register_noauth_routes(app):
     
     @app.route('/noauth/')
     def noauth_index():
-        """Página principal sin autenticación con datos reales."""
-        df = load_real_data()
-        if df.empty:
-            return render_template('index.html', messages=[], channels=[], min_date='', max_date='')
-
-        # Preparar datos para la plantilla inicial
-        sorted_df = df.sort_values(by='Score', ascending=False) if 'Score' in df.columns else df
-        displayed_df = sorted_df.head(48)  # MESSAGES_LIMIT
-        messages = displayed_df[['Embed', 'Score', 'Message ID', 'URL', 'Label']].to_dict(orient='records') if not displayed_df.empty else []
-
-        # Obtener datos para filtros (canales, fechas)
-        channels = []
-        if 'Title' in df.columns:
-            channels = sorted(df['Title'].unique().tolist())
-            print(f"\nCanales que se pasan a la plantilla: {channels}")
-        
-        min_date = df['Date'].min().strftime('%Y-%m-%d') if 'Date' in df.columns and not df['Date'].empty else ''
-        max_date = df['Date'].max().strftime('%Y-%m-%d') if 'Date' in df.columns and not df['Date'].empty else ''
-
-        return render_template('index.html', messages=messages, channels=channels, min_date=min_date, max_date=max_date)
+        """Redirige a la página principal del frontend."""
+        return jsonify({"message": "Use the frontend at / for the web interface"})
 
     @app.route('/noauth/filter_messages', methods=['POST'])
     def noauth_filter_messages():
