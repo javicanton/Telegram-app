@@ -8,10 +8,13 @@ from datetime import datetime, timedelta
 import json
 import boto3
 from botocore.exceptions import ClientError
+from functools import wraps
+import noauth
 
 MESSAGES_LIMIT = 48
 S3_BUCKET = os.environ.get('S3_BUCKET', 'monitoria-data')
 S3_KEY = 'telegram_messages.json'
+SKIP_AUTH = os.environ.get('SKIP_AUTH', 'false').lower() == 'true'
 
 app = Flask(__name__)
 
@@ -37,6 +40,16 @@ s3_client = boto3.client('s3',
 
 # Base de datos de usuarios (en producción usar una base de datos real)
 users_db = {}
+
+def conditional_jwt_required(f):
+    """Decorador que aplica JWT solo si SKIP_AUTH es False."""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if SKIP_AUTH:
+            return f(*args, **kwargs)
+        else:
+            return jwt_required()(f)(*args, **kwargs)
+    return decorated_function
 
 @app.route('/health')
 def health_check():
@@ -127,7 +140,7 @@ def index():
     return render_template('index.html', messages=messages, channels=channels, min_date=min_date, max_date=max_date)
 
 @app.route('/load_more/<int:offset>', methods=['GET'])
-@jwt_required()
+@conditional_jwt_required
 def load_more(offset=0):
     """Carga más mensajes a partir de un offset dado."""
     try:
@@ -234,7 +247,7 @@ def load_more(offset=0):
         return ('', 204)
 
 @app.route('/label', methods=['POST'])
-@jwt_required()
+@conditional_jwt_required
 def label_message():
     """Etiqueta un mensaje con un valor específico."""
     try:
@@ -314,7 +327,7 @@ def export_relevants():
         return jsonify(success=False, error=f"Error inesperado en el servidor: {str(e)}"), 500
 
 @app.route('/filter_messages', methods=['POST'])
-@jwt_required()
+@conditional_jwt_required
 def filter_messages():
     """Filtra los mensajes según los criterios especificados."""
     try:
@@ -468,7 +481,7 @@ def filter_messages():
 
 # Nueva ruta para renderizar el parcial HTML
 @app.route('/render_partial', methods=['POST'])
-@jwt_required()
+@conditional_jwt_required
 def render_partial():
     """Renderiza el fragmento HTML de los mensajes."""
     try:
@@ -530,7 +543,7 @@ def login():
     return jsonify({'access_token': access_token}), 200
 
 @app.route('/api/messages', methods=['GET'])
-@jwt_required()
+@conditional_jwt_required
 def get_messages():
     """Endpoint para obtener los mensajes para el frontend."""
     try:
@@ -557,7 +570,14 @@ def get_messages():
         print(f"Error en /api/messages: {e}")
         return jsonify(success=False, error=str(e)), 500
 
+# Registrar rutas sin autenticación si SKIP_AUTH está habilitado
+if SKIP_AUTH:
+    print("Modo sin autenticación habilitado - registrando rutas noauth...")
+    noauth.register_noauth_routes(app)
+
 if __name__ == '__main__':
     print("Iniciando servidor Flask...")
+    if SKIP_AUTH:
+        print("⚠️  MODO SIN AUTENTICACIÓN HABILITADO")
     # Considera usar debug=True solo para desarrollo, False para producción
     app.run(host='0.0.0.0', port=5001, debug=True)

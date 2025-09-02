@@ -9,6 +9,8 @@ services:
       - FLASK_APP=app.py
       - FLASK_ENV=production
       - JWT_SECRET_KEY=${JWT_SECRET_KEY:-tu-clave-secreta-por-defecto}
+      - SKIP_AUTH=true
+      - AWS_REGION=eu-north-1
     networks:
       - monitoria
     healthcheck:
