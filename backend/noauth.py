@@ -7,7 +7,7 @@ from botocore.exceptions import ClientError
 
 # Configuración S3 para datos reales
 S3_BUCKET_REAL = 'monitoria-data'
-S3_KEY_CSV = 'telegram_messages.csv'  # Archivo CSV real de S3
+S3_KEY_JSON = 'telegram_messages.json'  # Archivo JSON real de S3
 
 # Inicializar cliente S3
 s3_client = boto3.client('s3',
@@ -15,17 +15,16 @@ s3_client = boto3.client('s3',
 )
 
 def load_real_data():
-    """Carga los datos reales del archivo CSV desde S3."""
+    """Carga los datos reales del archivo JSON desde S3."""
     try:
-        # Intentar leer el archivo CSV desde S3
-        response = s3_client.get_object(Bucket=S3_BUCKET_REAL, Key=S3_KEY_CSV)
-        csv_content = response['Body'].read().decode('utf-8')
+        # Intentar leer el archivo JSON desde S3
+        response = s3_client.get_object(Bucket=S3_BUCKET_REAL, Key=S3_KEY_JSON)
+        data = json.loads(response['Body'].read().decode('utf-8'))
         
-        # Leer CSV desde string
-        from io import StringIO
-        df = pd.read_csv(StringIO(csv_content))
+        # Convertir los mensajes a DataFrame
+        df = pd.DataFrame(data['messages'])
         
-        # Limpiar y procesar datos
+        # Verificar y limpiar la columna Title (usada como Channel)
         if 'Title' in df.columns:
             df['Title'] = df['Title'].fillna('Desconocido')
             df['Title'] = df['Title'].replace('', 'Desconocido')
@@ -45,11 +44,14 @@ def load_real_data():
         
     except ClientError as e:
         if e.response['Error']['Code'] == 'NoSuchKey':
-            print(f"Advertencia: El archivo {S3_KEY_CSV} no existe en S3.")
+            print(f"Advertencia: El archivo {S3_KEY_JSON} no existe en S3.")
             return pd.DataFrame()
         else:
             print(f"Error de S3: {e}")
             return pd.DataFrame()
+    except json.JSONDecodeError as e:
+        print(f"Error al decodificar el archivo JSON: {e}")
+        return pd.DataFrame()
     except Exception as e:
         print(f"Error crítico al cargar datos reales: {e}")
         return pd.DataFrame()
@@ -345,8 +347,10 @@ def register_noauth_routes(app):
             if df.empty:
                 return jsonify(success=True, messages=[])
 
-            # Seleccionar las columnas necesarias
-            required_columns = ['Message ID', 'Message Text', 'Title', 'Views', 'Average Views', 'Label']
+            print(f"Columnas disponibles en JSON: {list(df.columns)}")
+            
+            # Seleccionar las columnas necesarias para el frontend
+            required_columns = ['Message ID', 'Message Text', 'Title', 'Views', 'Average Views', 'Label', 'Score', 'URL', 'Embed']
             messages = []
             
             for _, row in df.iterrows():
@@ -358,6 +362,7 @@ def register_noauth_routes(app):
                         msg[col] = None
                 messages.append(msg)
 
+            print(f"Total mensajes procesados: {len(messages)}")
             return jsonify(success=True, messages=messages)
 
         except Exception as e:

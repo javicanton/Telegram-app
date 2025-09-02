@@ -170,20 +170,26 @@ const MessageList = ({ filters }) => {
   return (
     <Box sx={{ mt: 4 }}>
       <Grid container spacing={2}>
-        {messages.map((message) => (
-          <Grid item xs={12} md={6} lg={4} key={message['Message ID']}>
-            <MessageCard 
-              message={{
-                Score: message['Score'] || 0,
-                Message_ID: message['Message ID'],
-                URL: message['URL'],
-                Label: message['Label'],
-                Embed: message['Embed']
-              }}
-              onLabelChange={handleLabel}
-            />
-          </Grid>
-        ))}
+        {messages.map((message, index) => {
+          if (index === 0) {
+            console.log('First message object:', message);
+            console.log('Available properties:', Object.keys(message));
+          }
+          return (
+            <Grid item xs={12} md={6} lg={4} key={message['Message ID'] || index}>
+              <MessageCard 
+                message={{
+                  Score: message['Score'] || 0,
+                  Message_ID: message['Message ID'],
+                  URL: message['URL'],
+                  Label: message['Label'],
+                  Embed: message['Embed']
+                }}
+                onLabelChange={handleLabel}
+              />
+            </Grid>
+          );
+        })}
       </Grid>
     </Box>
   );
