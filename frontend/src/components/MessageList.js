@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Box, Grid, CircularProgress, Typography } from '@mui/material';
 import MessageCard from './MessageCard';
 
-const MessageList = () => {
+const MessageList = ({ filters }) => {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -12,17 +12,29 @@ const MessageList = () => {
     fetchMessages();
   }, []);
 
+  useEffect(() => {
+    if (Object.keys(filters).length > 0) {
+      applyFilters(filters);
+    }
+  }, [filters]);
+
   const fetchMessages = async () => {
     try {
-      const token = localStorage.getItem('access_token');
-      if (!token) {
-        throw new Error('No hay token de autenticación');
+      // Detectar si usar endpoints sin autenticación
+      const useNoAuth = !localStorage.getItem('access_token');
+      const endpoint = useNoAuth ? '/noauth/api/messages' : '/api/messages';
+      
+      const headers = {};
+      if (!useNoAuth) {
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+          throw new Error('No hay token de autenticación');
+        }
+        headers['Authorization'] = `Bearer ${token}`;
       }
 
-      const response = await fetch('/api/messages', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+      const response = await fetch(endpoint, {
+        headers
       });
 
       if (!response.ok) {
@@ -42,8 +54,59 @@ const MessageList = () => {
     }
   };
 
+  const applyFilters = async (filters) => {
+    try {
+      setLoading(true);
+      
+      // Detectar si usar endpoints sin autenticación
+      const useNoAuth = !localStorage.getItem('access_token');
+      const endpoint = useNoAuth ? '/noauth/filter_messages' : '/filter_messages';
+      
+      const headers = {
+        'Content-Type': 'application/json'
+      };
+      
+      if (!useNoAuth) {
+        const token = localStorage.getItem('access_token');
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+      }
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(filters)
+      });
+
+      if (!response.ok) {
+        throw new Error('Error al aplicar filtros');
+      }
+
+      const data = await response.json();
+      if (data.success) {
+        setMessages(data.messages);
+      } else {
+        throw new Error(data.error || 'Error al aplicar filtros');
+      }
+      setLoading(false);
+    } catch (err) {
+      setError(err.message);
+      setLoading(false);
+    }
+  };
+
   const handleLabel = async (messageId, label) => {
     try {
+      // Detectar si usar endpoints sin autenticación
+      const useNoAuth = !localStorage.getItem('access_token');
+      
+      // En modo sin autenticación, no permitir etiquetado
+      if (useNoAuth) {
+        alert('El etiquetado no está disponible en modo sin autenticación');
+        return;
+      }
+
       const token = localStorage.getItem('access_token');
       if (!token) {
         throw new Error('No hay token de autenticación');

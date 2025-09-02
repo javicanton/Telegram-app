@@ -381,3 +381,21 @@ def register_noauth_routes(app):
         except Exception as e:
             print(f"Error en /noauth/api/messages: {e}")
             return jsonify(success=False, error=str(e)), 500
+
+    @app.route('/noauth/api/channels', methods=['GET'])
+    def noauth_get_channels():
+        """Endpoint para obtener la lista de canales sin autenticación."""
+        try:
+            df = load_real_data()
+            if df.empty:
+                return jsonify([])
+
+            if 'Title' in df.columns:
+                channels = sorted(df['Title'].unique().tolist())
+                return jsonify(channels)
+            else:
+                return jsonify([])
+
+        except Exception as e:
+            print(f"Error en /noauth/api/channels: {e}")
+            return jsonify([]), 500

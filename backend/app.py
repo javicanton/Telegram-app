@@ -570,6 +570,25 @@ def get_messages():
         print(f"Error en /api/messages: {e}")
         return jsonify(success=False, error=str(e)), 500
 
+@app.route('/api/channels', methods=['GET'])
+@conditional_jwt_required
+def get_channels():
+    """Endpoint para obtener la lista de canales."""
+    try:
+        df = load_data()
+        if df.empty:
+            return jsonify([])
+
+        if 'Title' in df.columns:
+            channels = sorted(df['Title'].unique().tolist())
+            return jsonify(channels)
+        else:
+            return jsonify([])
+
+    except Exception as e:
+        print(f"Error en /api/channels: {e}")
+        return jsonify([]), 500
+
 # Registrar rutas sin autenticación si SKIP_AUTH está habilitado
 if SKIP_AUTH:
     print("Modo sin autenticación habilitado - registrando rutas noauth...")

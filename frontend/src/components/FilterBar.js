@@ -23,7 +23,11 @@ function FilterBar({ onFilterChange }) {
     // Cargar canales al montar el componente
     const fetchChannels = async () => {
       try {
-        const response = await axios.get('/api/channels');
+        // Detectar si usar endpoints sin autenticación
+        const useNoAuth = !localStorage.getItem('access_token');
+        const endpoint = useNoAuth ? '/noauth/api/channels' : '/api/channels';
+        
+        const response = await axios.get(endpoint);
         setChannels(response.data);
       } catch (error) {
         console.error('Error fetching channels:', error);
