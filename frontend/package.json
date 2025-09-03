@@ -41,7 +41,5 @@
       "last 1 safari version"
     ]
   },
-  "overrides": {
-    "graceful-fs": "^4.2.10"
-  }
+
 }
