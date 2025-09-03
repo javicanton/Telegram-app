@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "5001:5001"
+    environment:
+      - FLASK_APP=app.py
+      - FLASK_ENV=production
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-tu-clave-secreta-por-defecto}
+      - SKIP_AUTH=true
+      - AWS_REGION=${AWS_REGION:-eu-north-1}
+      - S3_BUCKET=${S3_BUCKET:-monitoria-data}
+      - S3_KEY=${S3_KEY:-telegram_messages.json}
+      - S3_IS_CSV=${S3_IS_CSV:-0}
+    networks:
+      - monitoria
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001/health"]
+      interval: 30s
+      timeout: 20s
+      retries: 10
+      start_period: 40s
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+    networks:
+      - monitoria
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+networks:
+  monitoria:
+    driver: bridge
