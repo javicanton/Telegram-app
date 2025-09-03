@@ -1,22 +1,41 @@
 # ------------------------
-# Build stage
+# Build stage (robusto)
 # ------------------------
     FROM node:20-alpine AS build
 
     WORKDIR /app
     
-    # Copiamos solo manifests para aprovechar caché
+    # 1) Copiamos solo manifests para cacheo
     COPY package*.json ./
     
-    # Endurecer npm y forzar descarga limpia (evitar artefactos corruptos)
-    RUN npm config set fetch-retries 5 \
-     && npm config set fetch-retry-maxtimeout 300000 \
-     && npm config set fetch-timeout 120000 \
-     && npm cache clean --force \
-     && npm install --no-audit --progress=false --legacy-peer-deps --prefer-online
+    # 2) Endurecer npm: versión estable, tiempo y reintentos
+    RUN npm i -g npm@11.5.2 && \
+        npm config set registry https://registry.npmjs.org/ && \
+        npm config set fetch-retries 5 && \
+        npm config set fetch-retry-maxtimeout 300000 && \
+        npm config set fetch-timeout 120000 && \
+        npm config set prefer-online true && \
+        npm cache clean --force
     
-    # Copiamos el resto y construimos
+    # 3) Instalación con reintentos (evita artefactos corruptos)
+    #    --legacy-peer-deps para evitar bloqueos de peer deps
+    RUN set -eux; \
+        for i in 1 2 3; do \
+          echo ">>> npm install intento $i"; \
+          npm install --no-audit --progress=false --legacy-peer-deps --force && break; \
+          echo ">>> npm install falló, limpiando caché y reintentando..."; \
+          npm cache clean --force; \
+          sleep 2; \
+        done
+    
+    # 4) Copiamos el resto del código
     COPY . .
+    
+    # 5) Validación explícita del paquete que te falla (path-key)
+    #    Si este JSON está truncado, fallará aquí ANTES del build
+    RUN node -e "const fs=require('fs'); JSON.parse(fs.readFileSync('node_modules/path-key/package.json','utf8'))"
+    
+    # 6) Build del frontend
     RUN npm run build
     
     # ------------------------
