@@ -21,7 +21,7 @@ app = Flask(__name__)
 # Configuración de CORS
 CORS(app, resources={
     r"/*": {
-        "origins": ["https://app.monitoria.org", "http://app.monitoria.org", "http://localhost:3000"],
+        "origins": ["https://app.monitoria.org", "http://app.monitoria.org"],
         "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
         "allow_headers": ["Content-Type", "Authorization"],
         "supports_credentials": True
