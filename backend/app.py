@@ -589,6 +589,35 @@ def get_channels():
         print(f"Error en /api/channels: {e}")
         return jsonify([]), 500
 
+@app.route('/api/cards', methods=['GET'])
+def get_cards():
+    """Endpoint para obtener las tarjetas de mensajes (compatible con frontend)."""
+    try:
+        # Usar la misma lógica que noauth_get_messages
+        df = noauth.load_real_data()
+        if df.empty:
+            return jsonify({"items": []}), 200
+
+        items = []
+        for _, row in df.iterrows():
+            item = {
+                'id': row.get('Message ID', ''),
+                'title': row.get('Title', ''),
+                'description': row.get('Message Text', ''),
+                'channel': row.get('Title', ''),
+                'date': row.get('Date Sent', ''),
+                'score': row.get('Score', 0),
+                'url': row.get('URL', ''),
+                'tags': []
+            }
+            items.append(item)
+        
+        return jsonify({"items": items}), 200
+        
+    except Exception as e:
+        print(f"Error en /api/cards: {e}")
+        return jsonify({"items": []}), 200
+
 # Registrar rutas sin autenticación si SKIP_AUTH está habilitado
 if SKIP_AUTH:
     print("Modo sin autenticación habilitado - registrando rutas noauth...")
