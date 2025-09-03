@@ -10,8 +10,8 @@
     
     # Instalamos dependencias con lockfile (más rápido y reproducible)
     # Flags: sin auditoría, sin progreso, sin conflictos de peer deps
-    RUN npm ci --no-audit --progress=false --legacy-peer-deps
-    
+    RUN npm install --no-audit --progress=false --legacy-peer-deps
+        
     # Copiamos el resto del código y construimos
     COPY . .
     RUN npm run build
