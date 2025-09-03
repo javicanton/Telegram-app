@@ -5,13 +5,11 @@
 
     WORKDIR /app
     
-    # Herramientas mínimas para descargar/verificar
-    RUN apk add --no-cache curl tar
+    # Opcional: herramientas (tar ya viene con busybox, pero añadimos curl si lo necesitas en otros pasos)
+    RUN apk add --no-cache tar
     
-    # Copiamos solo manifests para cachear
+    # Copiamos manifests y endurecemos npm
     COPY package*.json ./
-    
-    # Endurecemos npm + limpiamos caché
     RUN npm i -g npm@11.5.2 && \
         npm config set registry https://registry.npmjs.org/ && \
         npm config set fetch-retries 5 && \
@@ -30,28 +28,24 @@
         sleep 2; \
       done
     
-    # Copiamos el resto del código
+    # Copiamos código
     COPY . .
     
-    # --- REPARACIÓN ESPECÍFICA path-key si viene corrupto ---
-    # Si el JSON de path-key está truncado, lo rehidratamos desde el tarball oficial
+    # --- Reparación path-key si viene corrupto (sin curl) ---
     RUN node -e "try{JSON.parse(require('fs').readFileSync('node_modules/path-key/package.json','utf8'));process.exit(0)}catch(e){process.exit(1)}" \
      || ( \
-          echo '>>> Reparando node_modules/path-key desde el registro…' && \
-          PK_TARBALL=$(node -e "p=require('child_process').execSync('npm view path-key dist.tarball').toString().trim();process.stdout.write(p)") && \
-          echo \"Tarball: ${PK_TARBALL}\" && \
-          curl -fsSL \"$PK_TARBALL\" -o /tmp/path-key.tgz && \
-          tar -tzf /tmp/path-key.tgz >/dev/null && \
+          echo '>>> Reparando node_modules/path-key con npm pack…' && \
           rm -rf node_modules/path-key && \
-          mkdir -p /tmp/path-key && \
-          tar -xzf /tmp/path-key.tgz -C /tmp/path-key && \
-          mv /tmp/path-key/package node_modules/path-key \
-       )
+          npm pack path-key@latest --silent && \
+          tar -xzf path-key-*.tgz -C node_modules && \
+          mv node_modules/package node_modules/path-key && \
+          rm -f path-key-*.tgz \
+        )
     
     # Validación final antes de build
     RUN node -e "const fs=require('fs'); JSON.parse(fs.readFileSync('node_modules/path-key/package.json','utf8'))"
     
-    # Build del frontend
+    # Build
     RUN npm run build
     
     # ------------------------
