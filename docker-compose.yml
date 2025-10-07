@@ -17,9 +17,14 @@ services:
   frontend:
     build:
       context: ./frontend
+      dockerfile: Dockerfile
     container_name: monitoria-frontend
     ports:
       - "8080:80"
+      - "80:80"
+    depends_on:
+      - backend
+    volumes: [] #sin bind mounts
     stdin_open: true
     tty: true
     restart: always
