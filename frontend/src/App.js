@@ -7,6 +7,7 @@ import Box from '@mui/material/Box';
 import MessageList from './components/MessageList';
 import FilterBar from './components/FilterBar';
 import ScoreExplanation from './components/ScoreExplanation';
+import DebugComponent from './components/DebugComponent';
 
 const theme = createTheme({
   palette: {
@@ -36,6 +37,8 @@ function App() {
           </Typography>
 
           <FilterBar />
+          
+          <DebugComponent />
           
           <MessageList />
         </Box>
