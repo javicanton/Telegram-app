@@ -1,35 +1,29 @@
-# Etapa de construcción
-FROM node:18-alpine as builder
-
-# Configurar variables de entorno
-ENV NODE_ENV=production
-
-# Establecer directorio de trabajo
+# frontend/Dockerfile
+FROM node:18-alpine AS build
 WORKDIR /app
 
-# Copiar archivos de dependencias
-COPY package*.json ./
+# Manifiestos primero (cache de deps)
+COPY package.json package-lock.json ./
 
-# Instalar dependencias
-RUN npm install && npm cache clean --force
+# Endurecer npm para evitar descargas truncadas
+RUN npm config set fetch-retries 5 \
+ && npm config set fetch-retry-factor 2 \
+ && npm config set fetch-timeout 60000 \
+ && npm cache clean --force \
+ && npm ci --no-audit --no-fund
 
-# Copiar el resto del código
+# Código (sin node_modules)
 COPY . .
 
-# Construir la aplicación
+# Build estático
 RUN npm run build
 
-# Etapa de producción
-FROM nginx:stable-alpine
-
-# Copiar configuración de nginx
+# --- Runtime Nginx ---
+FROM nginx:alpine
+WORKDIR /usr/share/nginx/html
+# Serviremos en 80 y 8080 para no depender de qué puerto apunte el TG
+EXPOSE 80 8080
+# Estático generado
+COPY --from=build /app/build /usr/share/nginx/html
+# Conf con healthcheck, SPA fallback y proxy opcional a /api
 COPY nginx.conf /etc/nginx/conf.d/default.conf
-
-# Copiar archivos de construcción
-COPY --from=builder /app/build /usr/share/nginx/html
-
-# Exponer puerto
-EXPOSE 80
-
-# Iniciar nginx
-CMD ["nginx", "-g", "daemon off;"] 
