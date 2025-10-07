@@ -196,7 +196,6 @@ def index():
     return render_template('index.html', messages=messages, channels=channels, min_date=min_date, max_date=max_date)
 
 @app.route('/load_more/<int:offset>', methods=['GET'])
-@jwt_required()
 def load_more(offset=0):
     """Carga más mensajes a partir de un offset dado."""
     try:
@@ -303,7 +302,6 @@ def load_more(offset=0):
         return ('', 204)
 
 @app.route('/label', methods=['POST'])
-@jwt_required()
 def label_message():
     """Etiqueta un mensaje con un valor específico."""
     try:
@@ -398,7 +396,6 @@ def export_relevants():
         return jsonify(success=False, error=f"Error inesperado en el servidor: {str(e)}"), 500
 
 @app.route('/filter_messages', methods=['POST'])
-@jwt_required()
 def filter_messages():
     """Filtra los mensajes según los criterios especificados."""
     try:
@@ -552,7 +549,6 @@ def filter_messages():
 
 # Nueva ruta para renderizar el parcial HTML
 @app.route('/render_partial', methods=['POST'])
-@jwt_required()
 def render_partial():
     """Renderiza el fragmento HTML de los mensajes."""
     try:
@@ -614,7 +610,6 @@ def login():
     return jsonify({'access_token': access_token}), 200
 
 @app.route('/api/messages', methods=['GET'])
-@jwt_required()
 def get_messages():
     """Endpoint para obtener los mensajes para el frontend."""
     try:
