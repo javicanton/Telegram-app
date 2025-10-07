@@ -8,7 +8,6 @@ import MessageList from './components/MessageList';
 import FilterBar from './components/FilterBar';
 import ScoreExplanation from './components/ScoreExplanation';
 import DebugComponent from './components/DebugComponent';
-import SimpleMessageList from './components/SimpleMessageList';
 
 const theme = createTheme({
   palette: {
@@ -41,7 +40,7 @@ function App() {
           
           <DebugComponent />
           
-          <SimpleMessageList />
+          <MessageList />
         </Box>
       </Container>
     </ThemeProvider>
