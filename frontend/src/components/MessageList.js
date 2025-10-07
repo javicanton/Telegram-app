@@ -25,7 +25,8 @@ const MessageList = ({ filters = {} }) => {
 
   useEffect(() => {
     fetchMessages();
-  }, [filters]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const fetchMessages = async (page = 1, append = false) => {
     try {

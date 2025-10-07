@@ -25,6 +25,7 @@ function FilterBar({ onFilterChange, onChannelsLoad }) {
   useEffect(() => {
     // Cargar canales al montar el componente
     fetchChannels();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchChannels = async () => {
