@@ -5,12 +5,8 @@ WORKDIR /app
 # Manifiestos primero (cache de deps)
 COPY package.json package-lock.json ./
 
-# Endurecer npm para evitar descargas truncadas
-RUN npm config set fetch-retries 5 \
- && npm config set fetch-retry-factor 2 \
- && npm config set fetch-timeout 60000 \
- && npm cache clean --force \
- && npm install --no-audit --no-fund
+# Instalar dependencias de forma simple
+RUN npm install
 
 # Código (sin node_modules)
 COPY . .
