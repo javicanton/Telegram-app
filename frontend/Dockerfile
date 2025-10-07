@@ -1,5 +1,5 @@
 # frontend/Dockerfile
-FROM node:18-alpine AS build
+FROM node:18.18.0-alpine AS build
 WORKDIR /app
 
 # Manifiestos primero (cache de deps)
@@ -10,7 +10,7 @@ RUN npm config set fetch-retries 5 \
  && npm config set fetch-retry-factor 2 \
  && npm config set fetch-timeout 60000 \
  && npm cache clean --force \
- && npm ci --no-audit --no-fund
+ && npm install --no-audit --no-fund
 
 # Código (sin node_modules)
 COPY . .
