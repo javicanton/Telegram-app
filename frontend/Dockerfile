@@ -1,23 +1,29 @@
-# Build stage
-FROM node:16-alpine as build
-
+# frontend/Dockerfile
+FROM node:18-alpine AS build
 WORKDIR /app
 
-COPY package*.json ./
-RUN npm install
+# Manifiestos primero (cache de deps)
+COPY package.json package-lock.json ./
 
+# Endurecer npm para evitar descargas truncadas
+RUN npm config set fetch-retries 5 \
+ && npm config set fetch-retry-factor 2 \
+ && npm config set fetch-timeout 60000 \
+ && npm cache clean --force \
+ && npm ci --no-audit --no-fund
+
+# Código (sin node_modules)
 COPY . .
+
+# Build estático
 RUN npm run build
 
-# Production stage
+# --- Runtime Nginx ---
 FROM nginx:alpine
-
-# Copy the build output to replace the default nginx contents.
+WORKDIR /usr/share/nginx/html
+# Serviremos en 80 y 8080 para no depender de qué puerto apunte el TG
+EXPOSE 80 8080
+# Estático generado
 COPY --from=build /app/build /usr/share/nginx/html
-
-# Copy custom nginx config
+# Conf con healthcheck, SPA fallback y proxy opcional a /api
 COPY nginx.conf /etc/nginx/conf.d/default.conf
-
-EXPOSE 80
-
-CMD ["nginx", "-g", "daemon off;"] 
