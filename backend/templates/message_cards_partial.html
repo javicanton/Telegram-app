@@ -1,0 +1,21 @@
+{% for message in messages %}
+<div class="message-card">
+    <!-- Display Overperforming Score as the card title -->
+    <h2 class="score-title">Overperforming Score: <span class="score-value">{{ message['Score']|round(2) }}</span>x</h2>
+
+    <!-- Display the message using the Embed column -->
+    <div class="embed-container">
+        {{ message['Embed']|safe }}
+    </div>
+
+    <!-- Buttons -->
+    <div class="button-container">
+        {% set label = message['Label'] %}
+        <button class="relevant-btn" data-message-id="{{ message['Message ID'] }}" {% if label == 1 %}style="background-color: green"{% endif %}>Relevant</button>
+        <button class="not-relevant-btn" data-message-id="{{ message['Message ID'] }}" {% if label == 0 %}style="background-color: red"{% endif %}>Not Relevant</button>
+        <a href="{{ message['URL'] }}" target="_blank" class="goto-message-btn">Go to message</a>
+    </div>
+</div>
+{% else %}
+<p style="width: 100%; text-align: center; margin-top: 20px;">No messages found matching your criteria.</p>
+{% endfor %} 

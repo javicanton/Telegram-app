@@ -33,7 +33,6 @@ services:
     volumes: [] #sin bind mounts
     stdin_open: true
     tty: true
-    restart: always
     networks:
       - monitoria
     healthcheck:
@@ -44,5 +43,5 @@ services:
     restart: unless-stopped
 
 networks:
-  monitoria-network:
+  monitoria:
     driver: bridge

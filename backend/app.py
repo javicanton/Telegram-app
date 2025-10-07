@@ -7,10 +7,10 @@ import pandas as pd
 import os
 from datetime import datetime, timedelta
 import json
-from backend.s3_client import get_s3_client
-from backend.auth import auth_bp
-from backend.models import db
-from backend.config import Config
+from s3_client import get_s3_client
+from auth import auth_bp
+from models import db
+from config import Config
 import boto3
 from botocore.exceptions import ClientError
 import logging
@@ -112,49 +112,10 @@ def load_data_local():
         if not os.path.exists(json_path):
             logger.warning(f"El archivo {json_path} no existe.")
             return pd.DataFrame()
-
-# Configuración de CORS
-CORS(app, resources={
-    r"/*": {
-        "origins": ["http://app.monitoria.org", "http://localhost:3000"],
-        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-        "allow_headers": ["Content-Type", "Authorization"],
-        "supports_credentials": True
-    }
-})
-
-# Configuración de JWT
-app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', 'tu-clave-secreta-por-defecto')
-app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=1)
-jwt = JWTManager(app)
-
-# Inicializar cliente S3
-s3_client = boto3.client('s3',
-    region_name=os.environ.get('AWS_REGION', 'eu-north-1')
-)
-
-# Base de datos de usuarios (en producción usar una base de datos real)
-users_db = {}
-
-@app.route('/health')
-def health_check():
-    """Endpoint para verificar el estado del servicio."""
-    return jsonify({"status": "healthy"}), 200
-
-def load_data():
-    """Carga los datos del archivo JSON desde S3 y maneja posibles errores."""
-    try:
-        # Intentar leer desde S3
-        try:
-            response = s3_client.get_object(Bucket=S3_BUCKET, Key=S3_KEY)
-            data = json.loads(response['Body'].read().decode('utf-8'))
-        except ClientError as e:
-            if e.response['Error']['Code'] == 'NoSuchKey':
-                print(f"Advertencia: El archivo {S3_KEY} no existe en S3.")
-                return pd.DataFrame()
-            else:
-                raise
-
+        
+        with open(json_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        
         # Convertir los mensajes a DataFrame
         df = pd.DataFrame(data['messages'])
         
@@ -183,6 +144,15 @@ def load_data():
     except Exception as e:
         logger.error(f"Error crítico al cargar el archivo JSON: {e}")
         return pd.DataFrame()
+
+# Base de datos de usuarios (en producción usar una base de datos real)
+users_db = {}
+
+@app.route('/health')
+def health_check():
+    """Endpoint para verificar el estado del servicio."""
+    return jsonify({"status": "healthy"}), 200
+
 
 def save_data(df):
     """Guarda los datos en S3."""
