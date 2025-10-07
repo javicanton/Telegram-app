@@ -15,8 +15,8 @@ RUN npm config set fetch-retries 5 \
 # Código (sin node_modules)
 COPY . .
 
-# Build estático
-RUN npm run build
+# Actualizar browserslist y build estático
+RUN npx update-browserslist-db@latest && npm run build
 
 # --- Runtime Nginx ---
 FROM nginx:alpine
