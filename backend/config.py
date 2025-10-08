@@ -6,17 +6,8 @@ class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY', 'your-secret-key-change-in-production')
     
     # Configuración de la base de datos
-    # Para desarrollo local usar SQLite, para producción PostgreSQL
-    if os.environ.get('FLASK_ENV') == 'production':
-        DB_USER = os.environ.get('DB_USER', 'admin')
-        DB_PASSWORD = os.environ.get('DB_PASSWORD')
-        DB_HOST = os.environ.get('DB_HOST', 'localhost')
-        DB_PORT = os.environ.get('DB_PORT', '5432')
-        DB_NAME = os.environ.get('DB_NAME', 'telegram_app')
-        SQLALCHEMY_DATABASE_URI = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
-    else:
-        # SQLite para desarrollo local
-        SQLALCHEMY_DATABASE_URI = 'sqlite:///telegram_app.db'
+    # Usar SQLite para desarrollo y AWS (sin PostgreSQL)
+    SQLALCHEMY_DATABASE_URI = 'sqlite:///telegram_app.db'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
     # Configuración de JWT
