@@ -1,22 +1,27 @@
-# frontend/Dockerfile.simple - Versión simplificada
-FROM node:18.18.0-alpine AS build
+# Dockerfile simplificado para evitar problemas de memoria
+FROM node:18.18.0-alpine
+
 WORKDIR /app
 
-# Copiar archivos de dependencias
-COPY package.json package-lock.json ./
+# Copiar package files
+COPY package*.json ./
 
-# Instalar dependencias de forma más simple
-RUN npm install
+# Instalar dependencias
+RUN npm install --production
 
 # Copiar código fuente
 COPY . .
 
-# Actualizar browserslist y hacer build
-RUN npx update-browserslist-db@latest && npm run build
+# Build con menos memoria
+ENV NODE_OPTIONS="--max-old-space-size=1024"
 
-# Runtime con Nginx
+# Build de producción
+RUN npm run build
+
+# Usar nginx para servir
 FROM nginx:alpine
-WORKDIR /usr/share/nginx/html
-EXPOSE 80 8080
-COPY --from=build /app/build /usr/share/nginx/html
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=0 /app/build /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/nginx.conf
+
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]
