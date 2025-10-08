@@ -30,7 +30,7 @@ app.config.from_object(Config)
 jwt = JWTManager(app)
 CORS(app, resources={
     r"/*": {
-        "origins": ["http://localhost:3000", "http://192.168.1.142:3000", "http://app.monitoria.org"],
+        "origins": ["http://localhost:3000", "http://192.168.1.142:3000", "http://app.monitoria.org", "http://13.60.219.71", "http://13.60.219.71:80", "http://13.60.219.71:8080"],
         "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
         "allow_headers": ["Content-Type", "Authorization"],
         "supports_credentials": True
@@ -48,7 +48,20 @@ with app.app_context():
 def load_data():
     """Carga los datos desde S3 y maneja posibles errores."""
     try:
-        # Intentar cargar desde S3
+        # Intentar cargar desde URL pública primero (más rápido)
+        try:
+            logger.info("Intentando cargar desde URL pública de S3")
+            import requests
+            response = requests.get('https://monitoria-data.s3.eu-north-1.amazonaws.com/telegram_messages.json', timeout=30)
+            if response.status_code == 200:
+                data = response.json()
+                df = pd.DataFrame(data['messages'])
+                logger.info(f"Datos cargados desde URL pública, filas: {len(df)}")
+                return df
+        except Exception as e:
+            logger.warning(f"No se pudo cargar desde URL pública: {e}")
+        
+        # Intentar cargar desde S3 con credenciales
         s3_client = get_s3_client()
         
         # Verificar conexión con S3
