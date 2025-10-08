@@ -29,16 +29,8 @@ services:
       - "8080:80"
     depends_on:
       - backend
-    volumes: [] #sin bind mounts
-    stdin_open: true
-    tty: true
     networks:
       - monitoria
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:80"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
     restart: unless-stopped
 
 networks:
