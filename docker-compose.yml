@@ -28,6 +28,8 @@ services:
     ports:
       - "80:80"
       - "8080:80"
+    environment:
+      - REACT_APP_API_URL=http://13.60.219.71:5001
     depends_on:
       - backend
     networks:

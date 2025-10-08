@@ -1,7 +1,7 @@
 // Configuración del frontend
 const config = {
   // URL de la API del backend
-  API_BASE_URL: process.env.REACT_APP_API_URL || 'http://telegram-app_backend_1:5001',
+  API_BASE_URL: process.env.REACT_APP_API_URL || window.location.origin.replace(':80', ':5001').replace(':8080', ':5001'),
   
   // Configuración de AWS S3
   S3_BUCKET: process.env.REACT_APP_S3_BUCKET || 'monitoria-data',
