@@ -62,8 +62,7 @@ Asegúrate de que tienes:
 - **Todo**: Se despliega cuando hay cambios en ambos o archivos de configuración
 
 ### Branches Configurados:
-- `main`
-- `deploy-stable`
+- `deploy-beta`
 
 ### Proceso de Despliegue:
 1. GitHub Actions detecta cambios

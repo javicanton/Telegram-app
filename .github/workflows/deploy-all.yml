@@ -2,7 +2,7 @@ name: Deploy Full Application to AWS ECS
 
 on:
   push:
-    branches: [ main, deploy-stable ]
+    branches: [ deploy-beta ]
     paths:
       - 'backend/**'
       - 'frontend/**'

@@ -2,7 +2,7 @@ name: Deploy Frontend to AWS ECS
 
 on:
   push:
-    branches: [ main, deploy-stable ]
+    branches: [ deploy-beta ]
     paths:
       - 'frontend/**'
   workflow_dispatch:
