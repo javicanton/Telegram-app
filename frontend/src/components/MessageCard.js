@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import Typography from '@mui/material/Typography';
@@ -8,6 +8,29 @@ import Link from '@mui/material/Link';
 
 function MessageCard({ message, onLabelChange }) {
   const { Score, Message_ID, URL, Label, Embed } = message;
+  const embedRef = useRef(null);
+
+  useEffect(() => {
+    if (embedRef.current && Embed) {
+      // Limpiar el contenido anterior
+      embedRef.current.innerHTML = '';
+      
+      // Crear el script de Telegram
+      const script = document.createElement('script');
+      script.async = true;
+      script.src = 'https://telegram.org/js/telegram-widget.js?22';
+      
+      // Extraer el data-telegram-post del embed
+      const match = Embed.match(/data-telegram-post="([^"]+)"/);
+      if (match) {
+        script.setAttribute('data-telegram-post', match[1]);
+        script.setAttribute('data-width', '100%');
+        
+        // Agregar el script al contenedor
+        embedRef.current.appendChild(script);
+      }
+    }
+  }, [Embed]);
 
   return (
     <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -17,14 +40,15 @@ function MessageCard({ message, onLabelChange }) {
         </Typography>
 
         <Box 
+          ref={embedRef}
           sx={{ 
             mb: 2,
+            minHeight: '200px',
             '& iframe': {
               width: '100%',
               border: 'none'
             }
           }}
-          dangerouslySetInnerHTML={{ __html: Embed }}
         />
 
         <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center', mt: 2 }}>

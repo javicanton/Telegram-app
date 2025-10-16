@@ -9,7 +9,7 @@
   "containerDefinitions": [
     {
       "name": "monitoria-frontend",
-      "image": "ec2-13-60-67-92.eu-north-1.compute.amazonaws.com/monitoria-frontend:latest",
+      "image": "${AWS_ACCOUNT_ID}.dkr.ecr.eu-north-1.amazonaws.com/monitoria-frontend:latest",
       "portMappings": [
         {
           "containerPort": 80,

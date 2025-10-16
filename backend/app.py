@@ -7,10 +7,10 @@ import pandas as pd
 import os
 from datetime import datetime, timedelta
 import json
-from backend.s3_client import get_s3_client
-from backend.auth import auth_bp
-from backend.models import db
-from backend.config import Config
+from s3_client import get_s3_client
+from auth import auth_bp
+from models import db
+from config import Config
 import boto3
 from botocore.exceptions import ClientError
 import logging
@@ -28,7 +28,14 @@ app.config.from_object(Config)
 
 # Inicializar extensiones
 jwt = JWTManager(app)
-CORS(app)
+CORS(app, resources={
+    r"/*": {
+        "origins": ["http://localhost:3000", "http://192.168.1.142:3000", "http://app.monitoria.org", "http://13.60.219.71", "http://13.60.219.71:80", "http://13.60.219.71:8080"],
+        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization"],
+        "supports_credentials": True
+    }
+})
 db.init_app(app)
 
 # Registrar blueprints
@@ -41,7 +48,20 @@ with app.app_context():
 def load_data():
     """Carga los datos desde S3 y maneja posibles errores."""
     try:
-        # Intentar cargar desde S3
+        # Intentar cargar desde URL pública primero (más rápido)
+        try:
+            logger.info("Intentando cargar desde URL pública de S3")
+            import requests
+            response = requests.get('https://monitoria-data.s3.eu-north-1.amazonaws.com/telegram_messages.json', timeout=30)
+            if response.status_code == 200:
+                data = response.json()
+                df = pd.DataFrame(data['messages'])
+                logger.info(f"Datos cargados desde URL pública, filas: {len(df)}")
+                return df
+        except Exception as e:
+            logger.warning(f"No se pudo cargar desde URL pública: {e}")
+        
+        # Intentar cargar desde S3 con credenciales
         s3_client = get_s3_client()
         
         # Verificar conexión con S3
@@ -112,49 +132,10 @@ def load_data_local():
         if not os.path.exists(json_path):
             logger.warning(f"El archivo {json_path} no existe.")
             return pd.DataFrame()
-
-# Configuración de CORS
-CORS(app, resources={
-    r"/*": {
-        "origins": ["http://app.monitoria.org", "http://localhost:3000"],
-        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-        "allow_headers": ["Content-Type", "Authorization"],
-        "supports_credentials": True
-    }
-})
-
-# Configuración de JWT
-app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', 'tu-clave-secreta-por-defecto')
-app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=1)
-jwt = JWTManager(app)
-
-# Inicializar cliente S3
-s3_client = boto3.client('s3',
-    region_name=os.environ.get('AWS_REGION', 'eu-north-1')
-)
-
-# Base de datos de usuarios (en producción usar una base de datos real)
-users_db = {}
-
-@app.route('/health')
-def health_check():
-    """Endpoint para verificar el estado del servicio."""
-    return jsonify({"status": "healthy"}), 200
-
-def load_data():
-    """Carga los datos del archivo JSON desde S3 y maneja posibles errores."""
-    try:
-        # Intentar leer desde S3
-        try:
-            response = s3_client.get_object(Bucket=S3_BUCKET, Key=S3_KEY)
-            data = json.loads(response['Body'].read().decode('utf-8'))
-        except ClientError as e:
-            if e.response['Error']['Code'] == 'NoSuchKey':
-                print(f"Advertencia: El archivo {S3_KEY} no existe en S3.")
-                return pd.DataFrame()
-            else:
-                raise
-
+        
+        with open(json_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        
         # Convertir los mensajes a DataFrame
         df = pd.DataFrame(data['messages'])
         
@@ -183,6 +164,15 @@ def load_data():
     except Exception as e:
         logger.error(f"Error crítico al cargar el archivo JSON: {e}")
         return pd.DataFrame()
+
+# Base de datos de usuarios (en producción usar una base de datos real)
+users_db = {}
+
+@app.route('/health')
+def health_check():
+    """Endpoint para verificar el estado del servicio."""
+    return jsonify({"status": "healthy"}), 200
+
 
 def save_data(df):
     """Guarda los datos en S3."""
@@ -226,7 +216,6 @@ def index():
     return render_template('index.html', messages=messages, channels=channels, min_date=min_date, max_date=max_date)
 
 @app.route('/load_more/<int:offset>', methods=['GET'])
-@jwt_required()
 def load_more(offset=0):
     """Carga más mensajes a partir de un offset dado."""
     try:
@@ -333,7 +322,6 @@ def load_more(offset=0):
         return ('', 204)
 
 @app.route('/label', methods=['POST'])
-@jwt_required()
 def label_message():
     """Etiqueta un mensaje con un valor específico."""
     try:
@@ -428,7 +416,6 @@ def export_relevants():
         return jsonify(success=False, error=f"Error inesperado en el servidor: {str(e)}"), 500
 
 @app.route('/filter_messages', methods=['POST'])
-@jwt_required()
 def filter_messages():
     """Filtra los mensajes según los criterios especificados."""
     try:
@@ -582,7 +569,6 @@ def filter_messages():
 
 # Nueva ruta para renderizar el parcial HTML
 @app.route('/render_partial', methods=['POST'])
-@jwt_required()
 def render_partial():
     """Renderiza el fragmento HTML de los mensajes."""
     try:
@@ -644,7 +630,6 @@ def login():
     return jsonify({'access_token': access_token}), 200
 
 @app.route('/api/messages', methods=['GET'])
-@jwt_required()
 def get_messages():
     """Endpoint para obtener los mensajes para el frontend."""
     try:

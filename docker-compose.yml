@@ -23,26 +23,19 @@ services:
   frontend:
     build:
       context: ./frontend
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.simple
     container_name: monitoria-frontend
     ports:
-      - "8080:80"
       - "80:80"
+      - "8080:80"
+    environment:
+      - REACT_APP_API_URL=http://13.60.219.71:5001
     depends_on:
       - backend
-    volumes: [] #sin bind mounts
-    stdin_open: true
-    tty: true
-    restart: always
     networks:
       - monitoria
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:80"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
     restart: unless-stopped
 
 networks:
-  monitoria-network:
+  monitoria:
     driver: bridge

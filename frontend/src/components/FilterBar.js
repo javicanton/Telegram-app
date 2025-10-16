@@ -25,13 +25,14 @@ function FilterBar({ onFilterChange, onChannelsLoad }) {
   useEffect(() => {
     // Cargar canales al montar el componente
     fetchChannels();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchChannels = async () => {
     try {
       setLoading(true);
-      // Intentar obtener canales desde la API
-      const response = await messagesAPI.getMessages({ page: 1, per_page: 1000 });
+      // Usar una petición más pequeña para obtener canales
+      const response = await messagesAPI.getMessages({ page: 1, per_page: 50 });
       
       if (response.success && response.messages) {
         // Extraer canales únicos de los mensajes
