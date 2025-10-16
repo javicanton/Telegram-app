@@ -6,6 +6,7 @@
   ],
   "cpu": "256",
   "memory": "512",
+  "executionRoleArn": "arn:aws:iam::773435638648:role/ecsTaskExecutionRole",
   "containerDefinitions": [
     {
       "name": "monitoria-frontend",
