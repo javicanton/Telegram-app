@@ -58,7 +58,46 @@ jobs:
         container-name: ${{ env.CONTAINER_NAME }}
         image: ${{ steps.build-image.outputs.image }}
 
+    - name: Check if ECS service exists
+      id: check-service
+      run: |
+        if aws ecs describe-services --cluster ${{ env.ECS_CLUSTER }} --services ${{ env.ECS_SERVICE }} --region ${{ env.AWS_REGION }} --query 'services[0].status' --output text 2>/dev/null | grep -q "ACTIVE"; then
+          echo "exists=true" >> $GITHUB_OUTPUT
+        else
+          echo "exists=false" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Get default VPC and subnets
+      if: steps.check-service.outputs.exists == 'false'
+      id: get-vpc-info
+      run: |
+        # Get default VPC
+        VPC_ID=$(aws ec2 describe-vpcs --filters "Name=is-default,Values=true" --query 'Vpcs[0].VpcId' --output text --region ${{ env.AWS_REGION }})
+        
+        # Get public subnets
+        SUBNETS=$(aws ec2 describe-subnets --filters "Name=vpc-id,Values=$VPC_ID" --query 'Subnets[?MapPublicIpOnLaunch==`true`].SubnetId' --output text --region ${{ env.AWS_REGION }} | tr '\t' ',')
+        
+        # Get default security group
+        SG_ID=$(aws ec2 describe-security-groups --filters "Name=vpc-id,Values=$VPC_ID" "Name=group-name,Values=default" --query 'SecurityGroups[0].GroupId' --output text --region ${{ env.AWS_REGION }})
+        
+        echo "vpc-id=$VPC_ID" >> $GITHUB_OUTPUT
+        echo "subnets=$SUBNETS" >> $GITHUB_OUTPUT
+        echo "security-group=$SG_ID" >> $GITHUB_OUTPUT
+
+    - name: Create ECS service if it doesn't exist
+      if: steps.check-service.outputs.exists == 'false'
+      run: |
+        aws ecs create-service \
+          --cluster ${{ env.ECS_CLUSTER }} \
+          --service-name ${{ env.ECS_SERVICE }} \
+          --task-definition ${{ steps.task-def.outputs.task-definition }} \
+          --desired-count 1 \
+          --launch-type FARGATE \
+          --network-configuration "awsvpcConfiguration={subnets=[${{ steps.get-vpc-info.outputs.subnets }}],securityGroups=[${{ steps.get-vpc-info.outputs.security-group }}],assignPublicIp=ENABLED}" \
+          --region ${{ env.AWS_REGION }}
+
     - name: Deploy Amazon ECS task definition
+      if: steps.check-service.outputs.exists == 'true'
       uses: aws-actions/amazon-ecs-deploy-task-definition@v1
       with:
         task-definition: ${{ steps.task-def.outputs.task-definition }}
